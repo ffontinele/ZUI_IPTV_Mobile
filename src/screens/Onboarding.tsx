@@ -339,7 +339,7 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
           </span>
           <div className="flex items-center gap-3 px-5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.07]">
             <span className="text-[18px]">🌐</span>
-            <span className="font-mono text-[14px] text-[#E8B567]/85 tracking-wide">ffontinele.github.io/ZUI_IPTV_Player_portugues/painel_web</span>
+            <span className="font-mono text-[14px] text-[#E8B567]/85 tracking-wide">ffontinele.github.io/zui-sync</span>
           </div>
         </div>
 
@@ -403,14 +403,14 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
             Taranan telefon web arayüzüne doğrudan doğrulamaya hazır şekilde açılır. */}
         <div className="w-[450px] h-[450px] rounded-2xl border border-white/10 bg-white p-3 overflow-hidden">
           <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(`https://ffontinele.github.io/ZUI_IPTV_Player_portugues/painel_web/?id=${shortDeviceId}&key=${deviceKey}`)}&margin=0`}
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(`https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}`)}&margin=0`}
             alt={t('onboarding.qr_alt')}
             className="w-full h-full rounded-lg object-cover"
           />
         </div>
         <div className="flex flex-col items-center gap-0.5">
           <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">{t('onboarding.qr_hint')}</p>
-          <p className="text-[10px] text-white/18 tracking-[0.15em]">ffontinele.github.io/ZUI_IPTV_Player_portugues/painel_web</p>
+          <p className="text-[10px] text-white/18 tracking-[0.15em]">ffontinele.github.io/zui-sync</p>
         </div>
 
         {/* Yeniden Yükle butonu */}
