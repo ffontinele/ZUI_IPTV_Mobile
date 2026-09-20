@@ -141,6 +141,7 @@ export const useSupabaseRealtime = (onSuccessCallback: () => void) => {
 
     let channel: any = null;
     let cancelled    = false;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     const startCloudSyncFlow = async () => {
       console.log('[ZUI-SYNC] Kimlik → shortId:', shortDeviceId, 'key:', deviceKey);
@@ -215,25 +216,21 @@ export const useSupabaseRealtime = (onSuccessCallback: () => void) => {
       // ─── POLLING AUTOMÁTICO PERIÓDICO (fallback do Realtime) ─────────────
       // Verifica a cada 15 segundos se há novas playlists aguardando
       // Isso garante captura automática mesmo se o Realtime falhar
-      const pollInterval = setInterval(() => {
+      pollInterval = setInterval(() => {
         if (!cancelled) {
           console.log('[ZUI-SYNC] Polling automático → verificando novas playlists...');
           void checkAndLoad();
         }
       }, 15000); // 15 segundos
 
-      // Limpa o intervalo quando o componente desmontar
-      return () => clearInterval(pollInterval);
     };
 
-    const cleanupPromise = void startCloudSyncFlow();
+    void startCloudSyncFlow();
 
     return () => {
       cancelled = true;
+      if (pollInterval) clearInterval(pollInterval);
       useCloudSyncRuntimeStore.setState({ isListening: false, _triggerCheckAndLoad: null });
-      cleanupPromise.then((cleanupFn) => {
-        if (cleanupFn) cleanupFn();
-      });
       if (channel && clientRef.current) {
         clientRef.current.removeChannel(channel);
       }
