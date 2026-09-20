@@ -211,13 +211,29 @@ export const useSupabaseRealtime = (onSuccessCallback: () => void) => {
         .subscribe((status) => {
           console.log('[ZUI-SYNC] Realtime subscribe durumu:', status);
         });
+
+      // ─── POLLING AUTOMÁTICO PERIÓDICO (fallback do Realtime) ─────────────
+      // Verifica a cada 15 segundos se há novas playlists aguardando
+      // Isso garante captura automática mesmo se o Realtime falhar
+      const pollInterval = setInterval(() => {
+        if (!cancelled) {
+          console.log('[ZUI-SYNC] Polling automático → verificando novas playlists...');
+          void checkAndLoad();
+        }
+      }, 15000); // 15 segundos
+
+      // Limpa o intervalo quando o componente desmontar
+      return () => clearInterval(pollInterval);
     };
 
-    void startCloudSyncFlow();
+    const cleanupPromise = void startCloudSyncFlow();
 
     return () => {
       cancelled = true;
       useCloudSyncRuntimeStore.setState({ isListening: false, _triggerCheckAndLoad: null });
+      cleanupPromise.then((cleanupFn) => {
+        if (cleanupFn) cleanupFn();
+      });
       if (channel && clientRef.current) {
         clientRef.current.removeChannel(channel);
       }
