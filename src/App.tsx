@@ -104,8 +104,12 @@ export default function App() {
 
   // BACK do Android (main.tsx converte backButton em keyCode 461)
   useEffect(() => {
+    let lastBack = 0;
     const onKey = (e: KeyboardEvent) => {
       if (e.keyCode !== 461) return;
+      const now = Date.now();
+      if (now - lastBack < 350) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      lastBack = now;
       const st = useUIStore.getState();
       if (st.currentScreen === 'onboarding') return;
       if (st.modalOpen) { st.closeModal(); return; }
