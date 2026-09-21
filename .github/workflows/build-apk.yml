@@ -47,19 +47,43 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Rename APK to friendly name
+        run: |
+          ORIG="android/app/build/outputs/apk/debug/app-debug.apk"
+          VERSION=$(grep -oP 'versionName "\K[^"]+' android/app/build.gradle || echo "dev")
+          NEW_NAME="ZUI_IPTV_Mobile_v${VERSION}.apk"
+          mkdir -p dist-apk
+          cp "$ORIG" "dist-apk/$NEW_NAME"
+          echo "NEW_APK=$NEW_NAME" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          ls -la dist-apk/
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zui-iptv-android-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: ZUI_IPTV_Mobile
+          path: dist-apk/*.apk
 
       - name: Create GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Build ${{ github.run_number }}
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          name: ZUI IPTV Mobile — build ${{ github.run_number }} (v${{ env.VERSION }})
+          body: |
+            ## 📱 ZUI IPTV Mobile — build ${{ github.run_number }}
+            
+            **Versão interna:** `${{ env.VERSION }}`
+            **Commit:** `${{ github.sha }}`
+            
+            ### 📦 Download
+            - `${{ env.NEW_APK }}` (APK pronto pra instalar no celular)
+            
+            ### 🔧 Como instalar
+            1. Baixe o APK abaixo
+            2. No celular: Ativar "Fontes desconhecidas" nas configurações
+            3. Instalar o APK
+          files: dist-apk/*.apk
           draft: false
           prerelease: false
         env:
