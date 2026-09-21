@@ -33,6 +33,11 @@ export function HomeScreen() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (useMoviesStore.getState().status === 'idle') void useMoviesStore.getState().loadVodData();
+    if (useSeriesStore.getState().status === 'idle') void useSeriesStore.getState().loadSeriesData();
+  }, []);
+
   const recentChannels = useMemo(() => {
     const all = Object.values(channelsBySource).flat();
     return recentIds.map((id) => all.find((c) => c.id === id)).filter(Boolean) as any[];
@@ -69,6 +74,8 @@ export function HomeScreen() {
     { icon: '🎬', title: 'Filmes', screen: 'movies' as const },
     { icon: '📼', title: 'Séries', screen: 'series' as const },
     { icon: '⭐', title: 'Favoritos', screen: 'favorites' as const },
+    { icon: '🕘', title: 'Recentes', screen: 'recents' as const },
+    { icon: '📋', title: 'Listas', screen: 'playlists' as const },
     { icon: '⬇️', title: 'Downloads', screen: 'downloads' as const },
     { icon: '⚙️', title: 'Configurações', screen: 'settings' as const },
   ];

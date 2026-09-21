@@ -1,5 +1,6 @@
 // FavoritesScreen — favoritos de canais, filmes e series num so lugar
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
 import { usePlaylistStore } from '@/state/playlistStore';
 import { useMoviesStore } from '@/state/moviesStore';
 import { useSeriesStore } from '@/state/seriesStore';
@@ -10,6 +11,11 @@ type Tab = 'channels' | 'movies' | 'series';
 
 export function FavoritesScreen() {
   const [tab, setTab] = useState<Tab>('channels');
+
+  useEffect(() => {
+    if (useMoviesStore.getState().status === 'idle') void useMoviesStore.getState().loadVodData();
+    if (useSeriesStore.getState().status === 'idle') void useSeriesStore.getState().loadSeriesData();
+  }, []);
 
   const channelsBySource = usePlaylistStore((s) => s.channelsBySource);
   const favChannelIds = usePlaylistStore((s) => s.favoriteIds);
@@ -24,6 +30,7 @@ export function FavoritesScreen() {
   const watchlistIds = useSeriesStore((s) => s.watchlistIds);
   const toggleWatchlist = useSeriesStore((s) => s.toggleWatchlist);
   const openSeriesDetails = useSeriesStore((s) => s.openSeriesDetails);
+  const detailsSeriesId = useSeriesStore((s) => s.detailsSeriesId);
 
   const favChannels = useMemo(() => {
     const all = Object.values(channelsBySource).flat();
@@ -104,6 +111,8 @@ export function FavoritesScreen() {
           </div>
         )}
       </div>
+
+      {detailsSeriesId && <EpisodeBrowserModal />}
     </div>
   );
 }

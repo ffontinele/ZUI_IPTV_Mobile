@@ -1,5 +1,6 @@
 // RecentsScreen — pasta unica de "assistidos recentemente / continuar" das 3 categorias
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
 import { usePlaylistStore } from '@/state/playlistStore';
 import { useMoviesStore } from '@/state/moviesStore';
 import { useSeriesStore } from '@/state/seriesStore';
@@ -11,6 +12,11 @@ type Tab = 'channels' | 'movies' | 'series';
 export function RecentsScreen() {
   const [tab, setTab] = useState<Tab>('channels');
 
+  useEffect(() => {
+    if (useMoviesStore.getState().status === 'idle') void useMoviesStore.getState().loadVodData();
+    if (useSeriesStore.getState().status === 'idle') void useSeriesStore.getState().loadSeriesData();
+  }, []);
+
   const channelsBySource = usePlaylistStore((s) => s.channelsBySource);
   const recentIds = usePlaylistStore((s) => s.recentIds);
   const allMovies = useMoviesStore((s) => s.allMovies);
@@ -19,6 +25,7 @@ export function RecentsScreen() {
   const allSeries = useSeriesStore((s) => s.allSeries);
   const currentEpisode = useSeriesStore((s) => s.currentEpisode);
   const openSeriesDetails = useSeriesStore((s) => s.openSeriesDetails);
+  const detailsSeriesId = useSeriesStore((s) => s.detailsSeriesId);
 
   const recentChannels = useMemo(() => {
     const all = Object.values(channelsBySource).flat();
@@ -73,13 +80,16 @@ export function RecentsScreen() {
       <div className="flex-1 overflow-y-auto">
         {tab === 'channels' && (
           recentChannels.length === 0 ? <Empty msg="Nenhum canal assistido recentemente." /> :
-          recentChannels.map((ch) => (
-            <div key={ch.id} onClick={() => playChannel(ch)} className="flex items-center gap-3 px-3 py-2.5 border-b border-border-subtle/40 active:bg-bg-hover">
-              <span className="text-lg">📺</span>
-              <span className="flex-1 text-sm text-text-primary truncate">{ch.name}</span>
-              <span className="text-xs text-text-muted">▶</span>
-            </div>
-          ))
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3">
+            {recentChannels.map((ch) => (
+              <button key={ch.id} onClick={() => playChannel(ch)} className="rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
+                <div className="aspect-video bg-bg-hover flex items-center justify-center p-3">
+                  {ch.logo ? <img src={ch.logo} alt="" className="w-full h-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <span className="text-3xl">📺</span>}
+                </div>
+                <p className="p-1.5 text-[10px] text-text-primary truncate">{ch.name}</p>
+              </button>
+            ))}
+          </div>
         )}
         {tab === 'movies' && (
           resumeMovies.length === 0 ? <Empty msg="Nenhum filme em andamento. Assista um filme e ele aparecerá aqui." /> :
@@ -114,6 +124,8 @@ export function RecentsScreen() {
           </div>
         )}
       </div>
+
+      {detailsSeriesId && <EpisodeBrowserModal />}
     </div>
   );
 }
