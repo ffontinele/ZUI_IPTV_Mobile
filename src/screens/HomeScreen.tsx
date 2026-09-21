@@ -76,15 +76,15 @@ export function HomeScreen() {
   return (
     <div className="h-full overflow-y-auto p-4 pb-6 flex flex-col gap-4 max-w-3xl mx-auto">
       <header>
-        <p className="text-[11px] uppercase tracking-[0.2em] text-primary mb-1">Bem-vindo</p>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-[#E8B567] mb-1">Bem-vindo</p>
         <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">{greeting(now)}.</h1>
         <p className="text-xs text-text-secondary mt-1 capitalize">{dateStr} · {timeStr}</p>
       </header>
 
       {!activeSource && (
         <div className="rounded-xl bg-bg-elevated border border-border-subtle p-4">
-          <p className="text-sm text-text-primary">Nenhuma lista configurada</p>
-          <button onClick={() => navigate('playlists')} className="mt-2 px-4 py-2 rounded-full bg-primary text-bg-base text-xs font-semibold">
+          <p className="text-sm text-text-[#E8B567]">Nenhuma lista configurada</p>
+          <button onClick={() => navigate('playlists')} className="mt-2 px-4 py-2 rounded-full bg-[#E8B567] text-[#161006] text-xs font-semibold">
             Adicionar lista agora
           </button>
         </div>
@@ -96,7 +96,7 @@ export function HomeScreen() {
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {recentChannels.map((ch) => (
               <button key={ch.id} onClick={() => playChannel(ch)} className="shrink-0 w-36 rounded-lg bg-bg-elevated border border-border-subtle p-2 text-left active:bg-bg-hover">
-                <p className="text-xs text-text-primary truncate">{ch.name}</p>
+                <p className="text-xs text-text-[#E8B567] truncate">{ch.name}</p>
               </button>
             ))}
           </div>
@@ -113,8 +113,8 @@ export function HomeScreen() {
                   {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>}
                 </div>
                 <div className="p-1.5">
-                  <p className="text-[10px] text-text-primary truncate">{m.title}</p>
-                  <div className="mt-1 h-1 rounded-full bg-bg-hover"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((movieProgress[m.id] ?? 0) * 100)}%` }} /></div>
+                  <p className="text-[10px] text-text-[#E8B567] truncate">{m.title}</p>
+                  <div className="mt-1 h-1 rounded-full bg-bg-hover"><div className="h-full rounded-full bg-[#E8B567]" style={{ width: `${Math.round((movieProgress[m.id] ?? 0) * 100)}%` }} /></div>
                 </div>
               </button>
             ))}
@@ -131,7 +131,7 @@ export function HomeScreen() {
                 <div className="aspect-[2/3] bg-bg-hover">
                   {s.posterUrl ? <img src={s.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl">📼</div>}
                 </div>
-                <p className="p-1.5 text-[10px] text-text-primary truncate">{s.title}</p>
+                <p className="p-1.5 text-[10px] text-text-[#E8B567] truncate">{s.title}</p>
               </button>
             ))}
           </div>

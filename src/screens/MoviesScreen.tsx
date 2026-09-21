@@ -15,6 +15,8 @@ export function MoviesScreen() {
   const setActiveCategory = useMoviesStore(s => s.setActiveCategory);
   const setCategorySearch = useMoviesStore(s => s.setCategorySearch);
   const searchQuery = useMoviesStore(s => s.categorySearch);
+  const favMovieIds = useMoviesStore(s => s.favoriteIds);
+  const toggleMovieFav = useMoviesStore(s => s.toggleFavorite);
   const playMovie = useMoviesStore(s => s.playMovie);
   const openMovieDetails = useMoviesStore(s => s.openMovieDetails);
   const detailsMovieId = useMoviesStore(s => s.detailsMovieId);
@@ -38,7 +40,7 @@ export function MoviesScreen() {
     return (
       <div className="flex items-center justify-center h-full bg-bg-base">
         <div className="flex flex-col items-center gap-3 text-text-secondary">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#E8B567] border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">{t('movies.loading', 'Carregando filmes...')}</span>
         </div>
       </div>
@@ -55,7 +57,7 @@ export function MoviesScreen() {
           <p className="text-sm text-text-secondary">{error ?? t('movies.error', 'Erro ao carregar')}</p>
           <button
             onClick={() => void loadVodData()}
-            className="mt-2 px-6 py-2 rounded-full bg-primary text-bg-base text-sm font-semibold"
+            className="mt-2 px-6 py-2 rounded-full bg-[#E8B567] text-[#161006] text-sm font-semibold"
           >
             {t('common.retry', 'Tentar novamente')}
           </button>
@@ -85,7 +87,7 @@ export function MoviesScreen() {
             <div className="flex gap-2">
               <button
                 onClick={() => playMovie(selectedMovie.id)}
-                className="px-4 py-2 rounded-full bg-primary text-bg-base text-sm font-semibold"
+                className="px-4 py-2 rounded-full bg-[#E8B567] text-[#161006] text-sm font-semibold"
               >
                 ▶ Assistir
               </button>
@@ -94,6 +96,12 @@ export function MoviesScreen() {
                 className="px-4 py-2 rounded-full bg-white/10 text-white text-sm font-semibold backdrop-blur"
               >
                 ℹ️ Detalhes
+              </button>
+              <button
+                onClick={() => toggleMovieFav(selectedMovie.id)}
+                className="px-4 py-2 rounded-full bg-white/10 text-white text-sm font-semibold backdrop-blur"
+              >
+                {favMovieIds.includes(selectedMovie.id) ? '⭐ Favoritado' : '☆ Favoritar'}
               </button>
             </div>
           </div>
@@ -105,11 +113,11 @@ export function MoviesScreen() {
         <div className="px-3 pt-3">
           <div className="flex items-center gap-2 rounded-full bg-bg-hover px-4 py-2">
             <span className="text-sm">🔍</span>
-            <input value={searchQuery} onChange={(e) => setCategorySearch(e.target.value)} placeholder="Buscar filme..." className="flex-1 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted" />
+            <input value={searchQuery} onChange={(e) => setCategorySearch(e.target.value)} placeholder="Buscar filme..." className="flex-1 bg-transparent outline-none text-sm text-text-[#E8B567] placeholder:text-text-muted" />
           </div>
         </div>
         <div className="flex overflow-x-auto gap-2 p-3 no-scrollbar">
-          {categories.map((cat) => (
+          {categories.filter((cat) => cat.id !== '__resume__' && cat.id !== '__favorites__').map((cat) => (
             <button
               key={cat.id}
               onClick={() => {
@@ -119,8 +127,8 @@ export function MoviesScreen() {
               className={`
                 shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
                 ${activeCategory === cat.id
-                  ? 'bg-primary text-bg-base'
-                  : 'bg-bg-hover text-text-primary'
+                  ? 'bg-[#E8B567] text-[#161006]'
+                  : 'bg-bg-hover text-text-[#E8B567]'
                 }
               `}
             >
@@ -140,7 +148,7 @@ export function MoviesScreen() {
               onDoubleClick={() => playMovie(movie.id)}
               className={`
                 flex flex-col rounded-lg overflow-hidden bg-bg-elevated text-left transition-all
-                ${selectedId === movie.id ? 'ring-2 ring-primary' : 'hover:ring-1 ring-border-subtle'}
+                ${selectedId === movie.id ? 'ring-2 ring-[#E8B567]' : 'hover:ring-1 ring-border-subtle'}
               `}
             >
               <div className="aspect-[2/3] bg-bg-hover relative">
@@ -157,7 +165,7 @@ export function MoviesScreen() {
                 )}
               </div>
               <div className="p-2">
-                <p className="text-xs font-medium text-text-primary line-clamp-2 leading-tight">
+                <p className="text-xs font-medium text-text-[#E8B567] line-clamp-2 leading-tight">
                   {movie.title}
                 </p>
               </div>

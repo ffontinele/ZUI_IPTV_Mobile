@@ -15,6 +15,8 @@ export function SeriesScreen() {
   const setActiveCategory = useSeriesStore(s => s.setActiveCategory);
   const setCategorySearch = useSeriesStore(s => s.setCategorySearch);
   const searchQuery = useSeriesStore(s => s.categorySearch);
+  const watchlistIds = useSeriesStore(s => s.watchlistIds);
+  const toggleWatchlist = useSeriesStore(s => s.toggleWatchlist);
   const openSeriesDetails = useSeriesStore(s => s.openSeriesDetails);
   const detailsSeriesId = useSeriesStore(s => s.detailsSeriesId);
 
@@ -37,7 +39,7 @@ export function SeriesScreen() {
     return (
       <div className="flex items-center justify-center h-full bg-bg-base">
         <div className="flex flex-col items-center gap-3 text-text-secondary">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#E8B567] border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">{t('series.loading', 'Carregando séries...')}</span>
         </div>
       </div>
@@ -52,7 +54,7 @@ export function SeriesScreen() {
           <p className="text-sm text-text-secondary">{error ?? t('series.error', 'Erro ao carregar')}</p>
           <button
             onClick={() => void loadSeriesData()}
-            className="mt-2 px-6 py-2 rounded-full bg-primary text-bg-base text-sm font-semibold"
+            className="mt-2 px-6 py-2 rounded-full bg-[#E8B567] text-[#161006] text-sm font-semibold"
           >
             {t('common.retry', 'Tentar novamente')}
           </button>
@@ -85,9 +87,15 @@ export function SeriesScreen() {
             </div>
             <button
               onClick={() => void openSeriesDetails(selected.id)}
-              className="px-4 py-2 rounded-full bg-primary text-bg-base text-sm font-semibold"
+              className="px-4 py-2 rounded-full bg-[#E8B567] text-[#161006] text-sm font-semibold"
             >
               📼 Ver episódios
+            </button>
+            <button
+              onClick={() => toggleWatchlist(selected.id)}
+              className="px-4 py-2 rounded-full bg-white/10 text-white text-sm font-semibold backdrop-blur"
+            >
+              {watchlistIds.includes(selected.id) ? '⭐ Favoritado' : '☆ Favoritar'}
             </button>
           </div>
         </div>
@@ -98,17 +106,17 @@ export function SeriesScreen() {
         <div className="px-3 pt-3">
           <div className="flex items-center gap-2 rounded-full bg-bg-hover px-4 py-2">
             <span className="text-sm">🔍</span>
-            <input value={searchQuery} onChange={(e) => setCategorySearch(e.target.value)} placeholder="Buscar série..." className="flex-1 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted" />
+            <input value={searchQuery} onChange={(e) => setCategorySearch(e.target.value)} placeholder="Buscar série..." className="flex-1 bg-transparent outline-none text-sm text-text-[#E8B567] placeholder:text-text-muted" />
           </div>
         </div>
         <div className="flex overflow-x-auto gap-2 p-3 no-scrollbar">
-          {categories.map((cat) => (
+          {categories.filter((cat) => cat.id !== '__resume__' && cat.id !== '__favorites__').map((cat) => (
             <button
               key={cat.id}
               onClick={() => { setActiveCategory(cat.id); setSelectedId(null); }}
               className={`
                 shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
-                ${activeCategory === cat.id ? 'bg-primary text-bg-base' : 'bg-bg-hover text-text-primary'}
+                ${activeCategory === cat.id ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-[#E8B567]'}
               `}
             >
               {cat.label}
@@ -127,7 +135,7 @@ export function SeriesScreen() {
               onDoubleClick={() => void openSeriesDetails(serie.id)}
               className={`
                 flex flex-col rounded-lg overflow-hidden bg-bg-elevated text-left transition-all
-                ${selectedId === serie.id ? 'ring-2 ring-primary' : ''}
+                ${selectedId === serie.id ? 'ring-2 ring-[#E8B567]' : ''}
               `}
             >
               <div className="aspect-[2/3] bg-bg-hover relative">
@@ -144,7 +152,7 @@ export function SeriesScreen() {
                 )}
               </div>
               <div className="p-2">
-                <p className="text-xs font-medium text-text-primary line-clamp-2 leading-tight">{serie.title}</p>
+                <p className="text-xs font-medium text-text-[#E8B567] line-clamp-2 leading-tight">{serie.title}</p>
               </div>
             </button>
           ))}

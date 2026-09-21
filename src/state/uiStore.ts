@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Screen = 'loading' | 'onboarding' | 'home' | 'channelList' | 'epg' | 'settings' | 'player' | 'movies' | 'series' | 'playlists' | 'favorites' | 'downloads';
+export type Screen = 'loading' | 'onboarding' | 'home' | 'channelList' | 'epg' | 'settings' | 'player' | 'movies' | 'series' | 'playlists' | 'favorites' | 'downloads' | 'recents';
 
 // Screens that can be "returned to" after leaving the player.
 export type MainScreen = 'channelList' | 'epg' | 'movies' | 'series';

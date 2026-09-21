@@ -53,7 +53,7 @@ export function FavoritesScreen() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap ${tab === t.id ? 'bg-primary text-bg-base' : 'bg-bg-hover text-text-primary'}`}
+              className={`flex-1 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap ${tab === t.id ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-[#E8B567]'}`}
             >
               {t.label} · {t.count}
             </button>
@@ -66,7 +66,7 @@ export function FavoritesScreen() {
           favChannels.length === 0 ? <Empty msg="Nenhum canal favorito ainda. Toque na ☆ de um canal para favoritar." /> :
           favChannels.map((ch: any) => (
             <div key={ch.id} onClick={() => playChannel(ch)} className="flex items-center gap-3 px-3 py-2.5 border-b border-border-subtle/40 active:bg-bg-hover">
-              <span className="flex-1 text-sm text-text-primary truncate">{ch.name}</span>
+              <span className="flex-1 text-sm text-text-[#E8B567] truncate">{ch.name}</span>
               <button onClick={(e) => { e.stopPropagation(); toggleChannelFav(ch.id); }} className="px-2">⭐</button>
             </div>
           ))
@@ -80,7 +80,7 @@ export function FavoritesScreen() {
                   <div className="aspect-[2/3] bg-bg-hover">
                     {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">🎬</div>}
                   </div>
-                  <p className="p-2 text-xs text-text-primary line-clamp-2 leading-tight text-left">{m.title}</p>
+                  <p className="p-2 text-xs text-text-[#E8B567] line-clamp-2 leading-tight text-left">{m.title}</p>
                 </button>
                 <button onClick={() => toggleMovieFav(m.id)} className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-sm">⭐</button>
               </div>
@@ -96,7 +96,7 @@ export function FavoritesScreen() {
                   <div className="aspect-[2/3] bg-bg-hover">
                     {s.posterUrl ? <img src={s.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">📼</div>}
                   </div>
-                  <p className="p-2 text-xs text-text-primary line-clamp-2 leading-tight text-left">{s.title}</p>
+                  <p className="p-2 text-xs text-text-[#E8B567] line-clamp-2 leading-tight text-left">{s.title}</p>
                 </button>
                 <button onClick={() => toggleWatchlist(s.id)} className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-sm">⭐</button>
               </div>

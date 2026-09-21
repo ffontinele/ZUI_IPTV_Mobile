@@ -35,11 +35,11 @@ export function DownloadsScreen() {
             <div className="flex items-start gap-3">
               <span className="text-xl">{it.kind === 'movie' ? '🎬' : '📼'}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-text-primary truncate">{it.title}</p>
+                <p className="text-sm text-text-[#E8B567] truncate">{it.title}</p>
                 {it.subtitle && <p className="text-xs text-text-secondary truncate">{it.subtitle}</p>}
                 <div className="mt-2 h-1.5 rounded-full bg-bg-hover overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${it.status === 'error' ? 'bg-red-400' : it.status === 'done' ? 'bg-emerald-400' : 'bg-primary'}`}
+                    className={`h-full rounded-full ${it.status === 'error' ? 'bg-red-400' : it.status === 'done' ? 'bg-emerald-400' : 'bg-[#E8B567]'}`}
                     style={{ width: `${Math.min(100, it.progress) }%` }}
                   />
                 </div>

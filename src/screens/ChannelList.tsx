@@ -27,7 +27,7 @@ export function ChannelList() {
   };
 
   const chip = (on: boolean) =>
-    `shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${on ? 'bg-primary text-bg-base' : 'bg-bg-hover text-text-primary'}`;
+    `shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${on ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-[#E8B567]'}`;
 
   return (
     <div className="flex flex-col h-full bg-bg-base">
@@ -38,13 +38,11 @@ export function ChannelList() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar canal..."
-            className="flex-1 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted"
+            className="flex-1 bg-transparent outline-none text-sm text-text-[#E8B567] placeholder:text-text-muted"
           />
         </div>
         <div className="flex overflow-x-auto gap-2 no-scrollbar">
           <button onClick={() => setActiveCategory(null)} className={chip(activeCategory === null)}>Todos</button>
-          <button onClick={() => setActiveCategory('__favorites__')} className={chip(activeCategory === '__favorites__')}>⭐ Favoritos</button>
-          <button onClick={() => setActiveCategory('__recent__')} className={chip(activeCategory === '__recent__')}>🕘 Recentes</button>
           {categories.map((c) => (
             <button key={c.name} onClick={() => setActiveCategory(c.name)} className={chip(activeCategory === c.name)}>
               {c.name} · {c.count}
@@ -65,7 +63,7 @@ export function ChannelList() {
             ) : (
               <span className="w-9 h-9 rounded bg-white/5 flex items-center justify-center text-sm shrink-0">📺</span>
             )}
-            <span className="flex-1 text-sm text-text-primary truncate">{ch.name}</span>
+            <span className="flex-1 text-sm text-text-[#E8B567] truncate">{ch.name}</span>
             <button
               onClick={(e) => { e.stopPropagation(); toggleFavorite(ch.id); }}
               className="px-2 py-1 text-base"
