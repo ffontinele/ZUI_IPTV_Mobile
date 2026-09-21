@@ -1,38 +1,23 @@
-// SeriesScreen — root layout for the Series screen.
-// Mirrors MoviesScreen: always renders FocusContext, lazy-loads data on mount.
-
-import { useEffect, useRef, useState } from 'react';
-import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation';
+// SeriesScreen — mobile-first (chips + grid rolavel + tap abre episodios)
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSeriesStore } from '@/state/seriesStore';
-import { SeriesCategorySidebar } from '@/components/series/SeriesCategorySidebar';
-import { SeriesHero } from '@/components/series/SeriesHero';
-import { SeriesGrid } from '@/components/series/SeriesGrid';
 import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
 
-let lastSeriesGridFocus: { categoryId: string; id: string | null } = { categoryId: '', id: null };
-
 export function SeriesScreen() {
+  const { t } = useTranslation();
   const visibleSeries = useSeriesStore(s => s.visibleSeries);
   const activeCategory = useSeriesStore(s => s.activeCategory);
+  const categories = useSeriesStore(s => s.categories);
   const status = useSeriesStore(s => s.status);
   const error = useSeriesStore(s => s.error);
   const loadSeriesData = useSeriesStore(s => s.loadSeriesData);
+  const setActiveCategory = useSeriesStore(s => s.setActiveCategory);
+  const openSeriesDetails = useSeriesStore(s => s.openSeriesDetails);
   const detailsSeriesId = useSeriesStore(s => s.detailsSeriesId);
 
-  const { t } = useTranslation();
-  const [focusedSeriesId, setFocusedSeriesId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Page-level focus context — declared BEFORE any conditional returns
-  const { ref, focusKey, setFocus } = useFocusable({
-    focusKey: 'SERIES_PAGE',
-    trackChildren: true,
-    saveLastFocusedChild: true,
-  });
-
-  // Load series data on mount if not already loaded.
-  // Also retry if status is 'error' — covers the case where an Xtream source
-  // was passive on last visit and the user has since enabled it.
   useEffect(() => {
     if (status === 'idle' || status === 'error') {
       void loadSeriesData();
@@ -40,123 +25,128 @@ export function SeriesScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Clear search when leaving the screen so it doesn't persist stale
-  useEffect(() => {
-    return () => {
-      useSeriesStore.getState().setCategorySearch('');
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const selected = selectedId
+    ? visibleSeries.find(s => s.id === selectedId)
+    : visibleSeries[0] ?? null;
 
-  // Set D-pad focus when data becomes ready
-  useEffect(() => {
-    if (status === 'ready') {
-      const t = setTimeout(() => setFocus('SERIES_GRID_VIRTUAL'), 60);
-      return () => clearTimeout(t);
-    }
-  }, [status, setFocus]);
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-full bg-bg-base">
+        <div className="flex flex-col items-center gap-3 text-text-secondary">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm">{t('series.loading', 'Carregando séries...')}</span>
+        </div>
+      </div>
+    );
+  }
 
-  const prevCategoryRef = useRef(activeCategory);
-
-  // Categoria mudou dentro da tela → primeira série.
-  // Voltou do player na mesma categoria → restaura a última série focada.
-  useEffect(() => {
-    const categoryChanged = prevCategoryRef.current !== activeCategory;
-    prevCategoryRef.current = activeCategory;
-
-    if (categoryChanged) {
-      const first = visibleSeries[0]?.id ?? null;
-      setFocusedSeriesId(first);
-      lastSeriesGridFocus = { categoryId: activeCategory, id: first };
-      return;
-    }
-
-    const saved =
-      lastSeriesGridFocus.categoryId === activeCategory &&
-      lastSeriesGridFocus.id &&
-      visibleSeries.some(s => s.id === lastSeriesGridFocus.id)
-        ? lastSeriesGridFocus.id
-        : visibleSeries[0]?.id ?? null;
-
-    setFocusedSeriesId(saved);
-  }, [activeCategory, visibleSeries]);
-
-  // Modal fechado → devolve o foco para o grid (evita direcional morto)
-  const prevDetailsRef = useRef(detailsSeriesId);
-  useEffect(() => {
-    const wasOpen = prevDetailsRef.current !== null;
-    prevDetailsRef.current = detailsSeriesId;
-    if (wasOpen && detailsSeriesId === null) {
-      const timer = setTimeout(() => setFocus('SERIES_GRID_VIRTUAL'), 60);
-      return () => clearTimeout(timer);
-    }
-  }, [detailsSeriesId, setFocus]);
-
-  const focusedSeries =
-    visibleSeries.find(s => s.id === focusedSeriesId) ?? visibleSeries[0] ?? null;
-
-  const handleFocusSeries = (id: string | null) => {
-    setFocusedSeriesId(id);
-    lastSeriesGridFocus = { categoryId: activeCategory, id };
-  };
+  if (status === 'error') {
+    return (
+      <div className="flex items-center justify-center h-full bg-bg-base p-6">
+        <div className="flex flex-col items-center gap-3 text-center max-w-sm">
+          <span className="text-3xl">⚠️</span>
+          <p className="text-sm text-text-secondary">{error ?? t('series.error', 'Erro ao carregar')}</p>
+          <button
+            onClick={() => void loadSeriesData()}
+            className="mt-2 px-6 py-2 rounded-full bg-primary text-bg-base text-sm font-semibold"
+          >
+            {t('common.retry', 'Tentar novamente')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-    {detailsSeriesId && <EpisodeBrowserModal />}
-    <FocusContext.Provider value={focusKey}>
-      <div
-        ref={ref as React.RefObject<HTMLDivElement>}
-        className="relative flex-1 overflow-hidden h-full"
-      >
-
-        {/* ── Loading ──────────────────────────────────────────────────── */}
-        {status === 'loading' && (
-          <div className="flex items-center justify-center h-full">
-            <div className="flex flex-col items-center gap-4 text-white/50">
-              <svg className="w-8 h-8 animate-spin text-[#E8B567]" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="31.4" strokeDashoffset="10" />
-              </svg>
-              <span className="font-serif italic text-[16px]">{t('series.loading')}</span>
+    <div className="h-full overflow-y-auto bg-bg-base">
+      {/* Hero compacto da serie selecionada */}
+      {selected && (
+        <div className="relative w-full h-44 md:h-56 bg-bg-elevated">
+          {(selected.backdropUrl ?? selected.posterUrl) ? (
+            <img
+              src={(selected.backdropUrl ?? selected.posterUrl)!}
+              alt={selected.title}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-5xl">📼</div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-bg-base via-transparent to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <h2 className="text-lg md:text-xl font-bold text-white mb-1 line-clamp-1">{selected.title}</h2>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[11px] text-text-secondary">★ {selected.rating?.toFixed(1) ?? '—'}</span>
+              <span className="text-[11px] text-text-secondary">· {selected.seasons} temporada(s)</span>
             </div>
+            <button
+              onClick={() => void openSeriesDetails(selected.id)}
+              className="px-4 py-2 rounded-full bg-primary text-bg-base text-sm font-semibold"
+            >
+              📼 Ver episódios
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Error ───────────────────────────────────────────────────── */}
-        {status === 'error' && (
-          <div className="flex items-center justify-center h-full">
-            <div className="flex flex-col items-center gap-3 text-center max-w-[400px]">
-              <svg className="w-12 h-12 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 8v4M12 16h.01" strokeLinecap="round" />
-              </svg>
-              <p className="font-serif italic text-[16px] text-white/60">{error ?? t('series.error')}</p>
-              <button
-                onClick={() => void loadSeriesData()}
-                className="mt-2 px-4 h-9 rounded-full border border-[#E8B567]/55 text-[#E8B567] text-[12px] uppercase tracking-[0.25em] font-semibold"
-              >
-                {t('common.retry')}
-              </button>
-            </div>
-          </div>
-        )}
+      {/* Categorias em chips (fixas no topo ao rolar) */}
+      <div className="sticky top-0 z-10 border-b border-border-subtle bg-bg-elevated">
+        <div className="flex overflow-x-auto gap-2 p-3 no-scrollbar">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => { setActiveCategory(cat.id); setSelectedId(null); }}
+              className={`
+                shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
+                ${activeCategory === cat.id ? 'bg-primary text-bg-base' : 'bg-bg-hover text-text-primary'}
+              `}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* ── Main layout ─────────────────────────────────────────────── */}
-        {status === 'ready' && (
-          <div className="grid grid-cols-[22%_1fr] gap-6 px-12 py-6 h-full overflow-hidden">
-            <SeriesCategorySidebar />
-
-            <main className="flex flex-col gap-5 overflow-hidden min-h-0">
-              <SeriesHero series={focusedSeries} />
-              <SeriesGrid
-                focusedSeriesId={focusedSeriesId}
-                onFocusSeries={handleFocusSeries}
-                onEscapeToLeft={() => setFocus(`series-cat-${activeCategory}`)}
-              />
-            </main>
+      {/* Grid de series */}
+      <div className="p-3">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {visibleSeries.map((serie) => (
+            <button
+              key={serie.id}
+              onClick={() => setSelectedId(serie.id)}
+              onDoubleClick={() => void openSeriesDetails(serie.id)}
+              className={`
+                flex flex-col rounded-lg overflow-hidden bg-bg-elevated text-left transition-all
+                ${selectedId === serie.id ? 'ring-2 ring-primary' : ''}
+              `}
+            >
+              <div className="aspect-[2/3] bg-bg-hover relative">
+                {serie.posterUrl ? (
+                  <img
+                    src={serie.posterUrl}
+                    alt={serie.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-4xl">📼</div>
+                )}
+              </div>
+              <div className="p-2">
+                <p className="text-xs font-medium text-text-primary line-clamp-2 leading-tight">{serie.title}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+        {visibleSeries.length === 0 && (
+          <div className="flex items-center justify-center h-32 text-text-muted text-sm">
+            {t('series.empty', 'Nenhuma série nesta categoria')}
           </div>
         )}
       </div>
-    </FocusContext.Provider>
-    </>
+
+      {detailsSeriesId && <EpisodeBrowserModal />}
+    </div>
   );
 }

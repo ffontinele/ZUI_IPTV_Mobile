@@ -34,7 +34,7 @@ export function HomeScreen() {
   ];
 
   return (
-    <div className="p-4 pb-6 flex flex-col gap-4 max-w-3xl mx-auto">
+    <div className="h-full overflow-y-auto p-4 pb-6 flex flex-col gap-4 max-w-3xl mx-auto">
       <header>
         <p className="text-[11px] uppercase tracking-[0.2em] text-primary mb-1">Bem-vindo</p>
         <h1 className="text-3xl font-bold text-white leading-tight">{greeting(now)}.</h1>

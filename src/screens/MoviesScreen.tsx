@@ -61,10 +61,10 @@ export function MoviesScreen() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-base overflow-hidden">
+    <div className="h-full overflow-y-auto bg-bg-base">
       {/* Hero do filme selecionado (banner grande no topo) */}
       {selectedMovie && (
-        <div className="relative w-full aspect-video bg-bg-elevated shrink-0">
+        <div className="relative w-full h-44 md:h-56 bg-bg-elevated">
           {selectedMovie.backdropUrl ?? selectedMovie.posterUrl ? (
             <img
               src={selectedMovie.backdropUrl ?? selectedMovie.posterUrl}
@@ -97,7 +97,7 @@ export function MoviesScreen() {
       )}
 
       {/* Categorias em scroll horizontal */}
-      <div className="shrink-0 border-b border-border-subtle bg-bg-elevated">
+      <div className="sticky top-0 z-10 border-b border-border-subtle bg-bg-elevated">
         <div className="flex overflow-x-auto gap-2 p-3 no-scrollbar">
           {categories.map((cat) => (
             <button
@@ -121,8 +121,8 @@ export function MoviesScreen() {
       </div>
 
       {/* Grid de filmes (responsivo) */}
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="p-3">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {visibleMovies.map((movie) => (
             <button
               key={movie.id}

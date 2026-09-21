@@ -97,6 +97,20 @@ export default function App() {
   const modalOpen = useUIStore((s) => s.modalOpen);
   const closeModal = useUIStore((s) => s.closeModal);
 
+  // BACK do Android (main.tsx converte backButton em keyCode 461)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.keyCode !== 461) return;
+      const st = useUIStore.getState();
+      if (st.modalOpen) { st.closeModal(); return; }
+      if (st.currentScreen === 'player') { st.navigate(st.lastMainScreen); return; }
+      if (st.currentScreen !== 'home') { st.navigate('home'); return; }
+      st.openModal('exit');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const renderScreen = () => {
     switch (screen) {
       case 'loading':     return <SplashScreen />;
