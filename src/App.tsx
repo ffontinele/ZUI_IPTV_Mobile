@@ -16,6 +16,8 @@ import { PlaylistsScreen } from '@/screens/PlaylistsScreen';
 import { SplashScreen } from '@/components/SplashScreen';
 import { ExitModal } from '@/components/common/ExitModal';
 import { useUIStore } from '@/state/uiStore';
+import { useMoviesStore } from '@/state/moviesStore';
+import { useSeriesStore } from '@/state/seriesStore';
 import { usePlaylistStore } from '@/state/playlistStore';
 import { useSourceStore } from '@/state/sourceStore';
 import { useEpgStore } from '@/state/epgStore';
@@ -105,9 +107,13 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       if (e.keyCode !== 461) return;
       const st = useUIStore.getState();
+      if (st.currentScreen === 'onboarding') return;
       if (st.modalOpen) { st.closeModal(); return; }
-      if (st.currentScreen === 'player') { st.navigate(st.lastMainScreen); return; }
-      if (st.currentScreen !== 'home') { st.navigate('home'); return; }
+      const ms = useMoviesStore.getState();
+      if (ms.detailsMovieId) { ms.closeMovieDetails(); return; }
+      const ss = useSeriesStore.getState();
+      if (ss.detailsSeriesId) { ss.closeSeriesDetails(); return; }
+      if (st.goBack()) return;
       st.openModal('exit');
     };
     window.addEventListener('keydown', onKey);
