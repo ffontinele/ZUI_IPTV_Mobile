@@ -4,7 +4,7 @@ android {
     namespace "com.zui.iptv.android"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.zui.iptv.android"
+        applicationId "com.zui.iptv.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 2

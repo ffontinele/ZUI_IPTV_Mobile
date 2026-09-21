@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.zui.iptv.android',
-  appName: 'ZUI IPTV',
+  appId: 'com.zui.iptv.mobile',
+  appName: 'ZUI IPTV Mobile',
   webDir: 'dist',
   plugins: {
     CapacitorHttp: { enabled: true },
