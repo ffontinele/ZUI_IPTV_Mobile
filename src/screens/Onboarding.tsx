@@ -251,7 +251,7 @@ function SelectStep({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className="flex flex-col items-center justify-start h-full overflow-y-auto px-4 py-8">
       {/* ZUI Logo */}
       {/* Geri butonu — sol üst (GitHub badge'in karşısı) */}
       <div className="absolute top-8 left-12 z-10">
@@ -271,13 +271,13 @@ function SelectStep({
       </div>
 
       {/* Headline */}
-      <h1 className="font-serif text-[52px] font-light text-white mb-4 leading-none">{t('onboarding.hello')}</h1>
+      <h1 className="font-serif text-[36px] font-light text-white mb-4 leading-none">{t('onboarding.hello')}</h1>
       <p className="text-[15px] text-white/45 text-center leading-relaxed mb-12 whitespace-pre-line">
         {t('onboarding.subtitle')}
       </p>
 
       {/* Method cards */}
-      <div className="flex gap-6">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-3xl justify-center">
         <MethodCard
           focusKey="OB_CARD_CLOUD"
           icon="✨"
@@ -320,7 +320,7 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
   const checkAndLoad = _triggerCheckAndLoad ?? (() => {});
 
   return (
-    <div className="flex flex-col h-full px-16 py-10">
+    <div className="flex flex-col h-full px-4 py-4 overflow-y-auto">
       <BackButton focusKey="OB_CLOUD_BACK" onPress={onBack} />
 
       <div className="mt-8 mb-2">
@@ -348,7 +348,7 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
           <span className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-semibold">
             {t('onboarding.cloud_step2')}
           </span>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* Sol: TV Kimliği */}
             <div className="flex-1 flex items-center gap-4 px-5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.07]">
               <span className="text-[18px]">🖥</span>
@@ -398,10 +398,10 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
       )}
 
       {/* QR + Yeniden Yükle — alt orta */}
-      <div className="flex-1 flex flex-col items-center justify-end pb-4 gap-3 mt-6">
+      <div className="flex flex-col items-center justify-start pb-4 gap-3 mt-4">
         {/* QR, TV Kimliği + Cihaz Anahtarı'nı URL parametresi olarak içerir.
             Taranan telefon web arayüzüne doğrudan doğrulamaya hazır şekilde açılır. */}
-        <div className="w-[450px] h-[450px] rounded-2xl border border-white/10 bg-white p-3 overflow-hidden">
+        <div className="w-[240px] h-[240px] shrink-0 rounded-2xl border border-white/10 bg-white p-3 overflow-hidden">
           <img
             src={`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(`https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}`)}&margin=0`}
             alt={t('onboarding.qr_alt')}
