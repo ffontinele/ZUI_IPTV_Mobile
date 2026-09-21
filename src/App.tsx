@@ -9,6 +9,8 @@ import { HomeScreen } from '@/screens/HomeScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { MoviesScreen } from '@/screens/MoviesScreen';
 import { SeriesScreen } from '@/screens/SeriesScreen';
+import { FavoritesScreen } from '@/screens/FavoritesScreen';
+import { DownloadsScreen } from '@/screens/DownloadsScreen';
 import { PlaylistsScreen } from '@/screens/PlaylistsScreen';
 import { SplashScreen } from '@/components/SplashScreen';
 import { ExitModal } from '@/components/common/ExitModal';
@@ -121,6 +123,8 @@ export default function App() {
       case 'settings':    return <SettingsScreen />;
       case 'movies':      return <MoviesScreen />;
       case 'series':      return <SeriesScreen />;
+      case 'favorites':   return <FavoritesScreen />;
+      case 'downloads':   return <DownloadsScreen />;
       case 'playlists':   return <PlaylistsScreen />;
       case 'player':      return <VideoPlayer />;
       default:            return <SplashScreen />;

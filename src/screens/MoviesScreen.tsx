@@ -13,6 +13,8 @@ export function MoviesScreen() {
   const error = useMoviesStore(s => s.error);
   const loadVodData = useMoviesStore(s => s.loadVodData);
   const setActiveCategory = useMoviesStore(s => s.setActiveCategory);
+  const setCategorySearch = useMoviesStore(s => s.setCategorySearch);
+  const searchQuery = useMoviesStore(s => s.categorySearch);
   const playMovie = useMoviesStore(s => s.playMovie);
   const openMovieDetails = useMoviesStore(s => s.openMovieDetails);
   const detailsMovieId = useMoviesStore(s => s.detailsMovieId);
@@ -25,6 +27,8 @@ export function MoviesScreen() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => () => setCategorySearch(''), []);
 
   const selectedMovie = selectedId
     ? visibleMovies.find(m => m.id === selectedId)
@@ -98,6 +102,12 @@ export function MoviesScreen() {
 
       {/* Categorias em scroll horizontal */}
       <div className="sticky top-0 z-10 border-b border-border-subtle bg-bg-elevated">
+        <div className="px-3 pt-3">
+          <div className="flex items-center gap-2 rounded-full bg-bg-hover px-4 py-2">
+            <span className="text-sm">🔍</span>
+            <input value={searchQuery} onChange={(e) => setCategorySearch(e.target.value)} placeholder="Buscar filme..." className="flex-1 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted" />
+          </div>
+        </div>
         <div className="flex overflow-x-auto gap-2 p-3 no-scrollbar">
           {categories.map((cat) => (
             <button

@@ -13,6 +13,8 @@ export function SeriesScreen() {
   const error = useSeriesStore(s => s.error);
   const loadSeriesData = useSeriesStore(s => s.loadSeriesData);
   const setActiveCategory = useSeriesStore(s => s.setActiveCategory);
+  const setCategorySearch = useSeriesStore(s => s.setCategorySearch);
+  const searchQuery = useSeriesStore(s => s.categorySearch);
   const openSeriesDetails = useSeriesStore(s => s.openSeriesDetails);
   const detailsSeriesId = useSeriesStore(s => s.detailsSeriesId);
 
@@ -24,6 +26,8 @@ export function SeriesScreen() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => () => setCategorySearch(''), []);
 
   const selected = selectedId
     ? visibleSeries.find(s => s.id === selectedId)
@@ -91,6 +95,12 @@ export function SeriesScreen() {
 
       {/* Categorias em chips (fixas no topo ao rolar) */}
       <div className="sticky top-0 z-10 border-b border-border-subtle bg-bg-elevated">
+        <div className="px-3 pt-3">
+          <div className="flex items-center gap-2 rounded-full bg-bg-hover px-4 py-2">
+            <span className="text-sm">🔍</span>
+            <input value={searchQuery} onChange={(e) => setCategorySearch(e.target.value)} placeholder="Buscar série..." className="flex-1 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted" />
+          </div>
+        </div>
         <div className="flex overflow-x-auto gap-2 p-3 no-scrollbar">
           {categories.map((cat) => (
             <button

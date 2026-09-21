@@ -1,15 +1,16 @@
 import { useUIStore } from '@/state/uiStore';
 
-interface MobileShellProps {
-  children: React.ReactNode;
-}
+interface MobileShellProps { children: React.ReactNode; }
 
 const ITEMS = [
-  { id: 'home',        icon: '🏠', label: 'Início',   screen: 'home' as const },
+  { id: 'home',        icon: '🏠', label: 'Início',     screen: 'home' as const },
   { id: 'channelList', icon: '📺', label: 'TV ao vivo', screen: 'channelList' as const },
-  { id: 'movies',      icon: '🎬', label: 'Filmes',   screen: 'movies' as const },
-  { id: 'series',      icon: '📼', label: 'Séries',   screen: 'series' as const },
-  { id: 'settings',    icon: '⚙️', label: 'Ajustes',  screen: 'settings' as const },
+  { id: 'movies',      icon: '🎬', label: 'Filmes',     screen: 'movies' as const },
+  { id: 'series',      icon: '📼', label: 'Séries',     screen: 'series' as const },
+  { id: 'favorites',   icon: '⭐', label: 'Favoritos',  screen: 'favorites' as const },
+  { id: 'downloads',   icon: '⬇️', label: 'Downloads',  screen: 'downloads' as const },
+  { id: 'playlists',   icon: '📋', label: 'Listas',     screen: 'playlists' as const },
+  { id: 'settings',    icon: '⚙️', label: 'Ajustes',    screen: 'settings' as const },
 ];
 
 export function MobileShell({ children }: MobileShellProps) {
@@ -18,9 +19,8 @@ export function MobileShell({ children }: MobileShellProps) {
 
   return (
     <div className="flex flex-col md:flex-row h-full w-full bg-bg-base">
-      {/* Retrato: barra inferior | Paisagem: sidebar vertical fina */}
-      <nav className="order-2 md:order-1 shrink-0 h-14 md:h-full md:w-24 bg-bg-elevated border-t md:border-t-0 md:border-r border-border-subtle flex flex-row md:flex-col items-stretch md:items-center md:py-4 md:gap-1 z-20">
-        <div className="hidden md:flex flex-col items-center gap-0.5 pb-3 mb-1 border-b border-border-subtle w-full">
+      <nav className="order-2 md:order-1 shrink-0 h-14 md:h-full md:w-24 bg-bg-elevated border-t md:border-t-0 md:border-r border-border-subtle flex flex-row md:flex-col items-stretch md:items-center md:py-3 md:gap-1 z-20 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto no-scrollbar">
+        <div className="hidden md:flex flex-col items-center gap-0.5 pb-2 mb-1 border-b border-border-subtle w-full shrink-0">
           <span className="text-sm font-bold text-primary leading-none">ZUI</span>
           <span className="text-[9px] text-text-muted">Mobile</span>
         </div>
@@ -31,21 +31,19 @@ export function MobileShell({ children }: MobileShellProps) {
               key={item.id}
               onClick={() => navigate(item.screen)}
               className={[
-                'flex-1 md:flex-none md:w-full flex flex-col items-center justify-center gap-0.5 py-1 md:py-2.5 md:mx-2 md:rounded-lg transition-colors',
+                'flex-1 md:flex-none md:w-full shrink-0 flex flex-col items-center justify-center gap-0.5 py-1 md:py-2 md:mx-1.5 md:rounded-lg transition-colors',
                 active ? 'md:bg-primary/10' : '',
               ].join(' ')}
             >
-              <span className={`text-lg md:text-xl leading-none ${active ? '' : 'opacity-70'}`}>{item.icon}</span>
-              <span className={`text-[10px] md:text-[10px] leading-tight ${active ? 'text-primary font-semibold' : 'text-text-secondary'}`}>
+              <span className={`text-base md:text-lg leading-none ${active ? '' : 'opacity-70'}`}>{item.icon}</span>
+              <span className={`text-[9px] md:text-[10px] leading-tight whitespace-nowrap md:whitespace-normal text-center ${active ? 'text-primary font-semibold' : 'text-text-secondary'}`}>
                 {item.label}
               </span>
-              <span className={`md:hidden h-0.5 w-8 rounded-full ${active ? 'bg-primary' : 'bg-transparent'}`} />
+              <span className={`md:hidden h-0.5 w-7 rounded-full ${active ? 'bg-primary' : 'bg-transparent'}`} />
             </button>
           );
         })}
       </nav>
-
-      {/* Conteúdo */}
       <main className="order-1 md:order-2 flex-1 overflow-y-auto min-h-0 min-w-0">
         {children}
       </main>

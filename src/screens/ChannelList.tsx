@@ -1,160 +1,85 @@
-import { useEffect, useRef, useState } from 'react';
-import { FocusContext, useFocusable } from '@noriginmedia/norigin-spatial-navigation';
-import { CategorySidebar } from '@/components/channels/CategorySidebar';
-import { ChannelListPro } from '@/components/channels/ChannelListPro';
-import { PreviewPane } from '@/components/channels/PreviewPane';
-import { PinEntryModal } from '@/components/parental/PinEntryModal';
+// ChannelList — mobile-first: busca + categorias + lista larga (sem painel de preview)
+import { useMemo, useState } from 'react';
 import { usePlaylistStore } from '@/state/playlistStore';
-import { useUIStore } from '@/state/uiStore';
 import { usePlayerStore } from '@/state/playerStore';
-import { useEpgStore } from '@/state/epgStore';
-import { channelCache } from '@/services/channelCache';
+import { useUIStore } from '@/state/uiStore';
 
 export function ChannelList() {
-  const [focusedChannelId, setFocusedChannelId] = useState<string | null>(null);
-
-  const pendingProtectedCategory = usePlaylistStore((s) => s.pendingProtectedCategory);
-  const setPendingProtectedCategory = usePlaylistStore((s) => s.setPendingProtectedCategory);
-  const setActiveCategory = usePlaylistStore((s) => s.setActiveCategory);
-  const selectChannel = usePlaylistStore((s) => s.selectChannel);
-  const addToRecent = usePlaylistStore((s) => s.addToRecent);
-  const lastFocusedChannelId = usePlaylistStore((s) => s.lastFocusedChannelId);
   const visibleChannels = usePlaylistStore((s) => s.visibleChannels);
+  const categories = usePlaylistStore((s) => s.categories);
+  const activeCategory = usePlaylistStore((s) => s.activeCategory);
+  const setActiveCategory = usePlaylistStore((s) => s.setActiveCategory);
+  const favoriteIds = usePlaylistStore((s) => s.favoriteIds);
   const toggleFavorite = usePlaylistStore((s) => s.toggleFavorite);
-  const navigate = useUIStore((s) => s.navigate);
-  const setSource = usePlayerStore((s) => s.setSource);
-  const refreshNowNext = useEpgStore((s) => s.refreshNowNext);
-  const isEpgLoaded = useEpgStore((s) => s.isLoaded);
+  const [query, setQuery] = useState('');
 
-  const { ref, focusKey, setFocus } = useFocusable({ focusKey: 'CHANNEL_LIST_ROOT' });
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return visibleChannels;
+    return visibleChannels.filter((c) => c.name.toLowerCase().includes(q));
+  }, [visibleChannels, query]);
 
-  const channelsLength = visibleChannels.length;
-  const firstChannelId = visibleChannels[0]?.id ?? null;
-
-  const initialFocusDone = useRef(false);
-
-  useEffect(() => {
-    if (initialFocusDone.current) return;
-    // Don't attempt focus until channels are actually loaded from DB.
-    // Firing with empty visibleChannels would focus sidebar-all, which
-    // triggers D-026 debouncedFilter(null) and overwrites the saved category.
-    if (channelsLength === 0) return;
-
-    const timeoutId = setTimeout(() => {
-      const isVirtualized = channelsLength >= 100; // matches VIRTUALIZATION_THRESHOLD
-
-      if (
-        lastFocusedChannelId?.includes(':') &&
-        visibleChannels.some((c) => c.id === lastFocusedChannelId)
-      ) {
-        if (isVirtualized) {
-          // Virtualized: focus container, set channel via state
-          handleChannelFocus(lastFocusedChannelId);
-          setFocus('CHANNEL_LIST_VIRTUAL');
-        } else {
-          setFocus(`channel-${lastFocusedChannelId}`);
-        }
-      } else if (firstChannelId) {
-        if (isVirtualized) {
-          handleChannelFocus(firstChannelId);
-          setFocus('CHANNEL_LIST_VIRTUAL');
-        } else {
-          setFocus(`channel-${firstChannelId}`);
-        }
-      } else {
-        setFocus('sidebar-all');
-      }
-
-      initialFocusDone.current = true;
-    }, 50);
-
-    return () => clearTimeout(timeoutId);
-  }, [channelsLength, firstChannelId, lastFocusedChannelId, visibleChannels]);
-
-  useEffect(() => {
-    if (isEpgLoaded && visibleChannels.length > 0) {
-      void refreshNowNext(visibleChannels.map((c) => c.id));
-    }
-  }, [visibleChannels, isEpgLoaded, refreshNowNext]);
-
-  useEffect(() => {
-    if (!isEpgLoaded) return;
-    const id = setInterval(() => {
-      const channels = usePlaylistStore.getState().visibleChannels;
-      if (channels.length > 0) {
-        void refreshNowNext(channels.map((c) => c.id));
-      }
-    }, 60_000);
-    return () => clearInterval(id);
-  }, [isEpgLoaded, refreshNowNext]);
-
-  const handleChannelFocus = (id: string) => {
-    setFocusedChannelId(id);
-    usePlaylistStore.getState().setLastFocusedChannel(id);
+  const play = (ch: any) => {
+    usePlaylistStore.getState().selectChannel(ch.id);
+    usePlaylistStore.getState().addToRecent(ch.id);
+    usePlayerStore.getState().setSource({ id: ch.id, name: ch.name, url: ch.streamUrl });
+    useUIStore.getState().navigate('player');
   };
 
-  const handleSelectChannel = async (id: string) => {
-    selectChannel(id);
-    addToRecent(id);
-    const [channel] = await channelCache.getChannelsByIds([id]);
-    if (!channel) return;
-    setSource({
-      id: channel.id,
-      name: channel.name,
-      url: channel.streamUrl,
-      sourceType: channel.sourceType,
-      streamUrlCandidates: channel.streamUrlCandidates,
-    });
-    navigate('player');
-  };
-
-  const handleToggleFavorite = (id: string) => {
-    toggleFavorite(id);
-  };
+  const chip = (on: boolean) =>
+    `shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${on ? 'bg-primary text-bg-base' : 'bg-bg-hover text-text-primary'}`;
 
   return (
-    <FocusContext.Provider value={focusKey}>
-      <div
-        ref={ref as React.RefObject<HTMLDivElement>}
-        className="w-full h-full grid grid-cols-[22%_26%_1fr] gap-6 px-12 py-6 overflow-hidden"
-      >
-        <CategorySidebar />
-        <ChannelListPro 
-          onSelectChannel={(id) => void handleSelectChannel(id)}
-          onFocusChannel={handleChannelFocus}
-          onToggleFavorite={handleToggleFavorite}
-          focusedChannelId={focusedChannelId}
-        />
-        <PreviewPane focusedChannelId={focusedChannelId} />
+    <div className="flex flex-col h-full bg-bg-base">
+      <div className="sticky top-0 z-10 bg-bg-elevated border-b border-border-subtle p-3 flex flex-col gap-2">
+        <div className="flex items-center gap-2 rounded-full bg-bg-hover px-4 py-2">
+          <span className="text-sm">🔍</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar canal..."
+            className="flex-1 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted"
+          />
+        </div>
+        <div className="flex overflow-x-auto gap-2 no-scrollbar">
+          <button onClick={() => setActiveCategory(null)} className={chip(activeCategory === null)}>Todos</button>
+          <button onClick={() => setActiveCategory('__favorites__')} className={chip(activeCategory === '__favorites__')}>⭐ Favoritos</button>
+          <button onClick={() => setActiveCategory('__recent__')} className={chip(activeCategory === '__recent__')}>🕘 Recentes</button>
+          {categories.map((c) => (
+            <button key={c.name} onClick={() => setActiveCategory(c.name)} className={chip(activeCategory === c.name)}>
+              {c.name} · {c.count}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {pendingProtectedCategory && (
-        <PinEntryModal
-          categoryName={pendingProtectedCategory}
-          onUnlock={() => {
-            setActiveCategory(pendingProtectedCategory);
-            setPendingProtectedCategory(null);
-            
-            // Wait for render, then focus
-            setTimeout(() => {
-              const s = usePlaylistStore.getState();
-              if (s.visibleChannels.length > 0) {
-                const firstId = s.visibleChannels[0].id;
-                if (s.visibleChannels.length >= 100) {
-                  handleChannelFocus(firstId);
-                  setFocus('CHANNEL_LIST_VIRTUAL');
-                } else {
-                  setFocus(`channel-${firstId}`);
-                }
-              }
-            }, 50);
-          }}
-          onCancel={() => {
-            setPendingProtectedCategory(null);
-            setFocus(`sidebar-all`); // Return focus to sidebar
-          }}
-        />
-      )}
-    </FocusContext.Provider>
+      <div className="flex-1 overflow-y-auto">
+        {filtered.map((ch: any) => (
+          <div
+            key={ch.id}
+            onClick={() => play(ch)}
+            className="flex items-center gap-3 px-3 py-2.5 border-b border-border-subtle/40 active:bg-bg-hover cursor-pointer"
+          >
+            {ch.logo ? (
+              <img src={ch.logo} alt="" className="w-9 h-9 rounded bg-white/5 object-contain shrink-0" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            ) : (
+              <span className="w-9 h-9 rounded bg-white/5 flex items-center justify-center text-sm shrink-0">📺</span>
+            )}
+            <span className="flex-1 text-sm text-text-primary truncate">{ch.name}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(ch.id); }}
+              className="px-2 py-1 text-base"
+            >
+              {favoriteIds.includes(ch.id) ? '⭐' : '☆'}
+            </button>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="flex items-center justify-center h-32 text-text-muted text-sm">
+            Nenhum canal encontrado
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
