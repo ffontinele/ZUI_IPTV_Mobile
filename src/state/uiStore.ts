@@ -38,10 +38,11 @@ export const useUIStore = create<UIStore>()(
             : state.lastMainScreen,
         })),
       goBack: () => {
-        const h = [...get().history];
+        const cur = useUIStore.getState().currentScreen;
+        const h = [...useUIStore.getState().history];
         while (h.length) {
           const prev = h.pop() as Screen;
-          if (prev === 'loading' || prev === 'onboarding' || prev === get().currentScreen) continue;
+          if (prev === 'loading' || prev === 'onboarding' || prev === cur) continue;
           set({ currentScreen: prev, history: h });
           return true;
         }
