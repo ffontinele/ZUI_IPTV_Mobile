@@ -1,10 +1,8 @@
 // MoviesScreen — layout mobile-first para ZUI IPTV Mobile
-// Substitui o layout TV (22% sidebar) por layout responsivo
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMoviesStore } from '@/state/moviesStore';
-import { usePlayerStore } from '@/state/playerStore';
-import { usePlaylistStore } from '@/state/playlistStore';
+import { MovieDetailsModal } from '@/components/movies/MovieDetailsModal';
 
 export function MoviesScreen() {
   const { t } = useTranslation();
@@ -15,7 +13,9 @@ export function MoviesScreen() {
   const error = useMoviesStore(s => s.error);
   const loadVodData = useMoviesStore(s => s.loadVodData);
   const setActiveCategory = useMoviesStore(s => s.setActiveCategory);
-  const setDetailsMovieId = useMoviesStore(s => s.setDetailsMovieId);
+  const playMovie = useMoviesStore(s => s.playMovie);
+  const openMovieDetails = useMoviesStore(s => s.openMovieDetails);
+  const detailsMovieId = useMoviesStore(s => s.detailsMovieId);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -60,25 +60,15 @@ export function MoviesScreen() {
     );
   }
 
-  const handlePlay = (movie: typeof visibleMovies[0]) => {
-    usePlayerStore.getState().play({
-      type: 'movie',
-      id: movie.id,
-      name: movie.name,
-      streamUrl: movie.streamUrl,
-      icon: movie.icon,
-    });
-  };
-
   return (
     <div className="flex flex-col h-full bg-bg-base overflow-hidden">
       {/* Hero do filme selecionado (banner grande no topo) */}
       {selectedMovie && (
         <div className="relative w-full aspect-video bg-bg-elevated shrink-0">
-          {selectedMovie.icon ? (
+          {selectedMovie.poster ? (
             <img
-              src={selectedMovie.icon}
-              alt={selectedMovie.name}
+              src={selectedMovie.poster}
+              alt={selectedMovie.title}
               className="w-full h-full object-cover"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
@@ -87,16 +77,16 @@ export function MoviesScreen() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-bg-base via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h2 className="text-xl font-bold text-white mb-1 line-clamp-2">{selectedMovie.name}</h2>
+            <h2 className="text-xl font-bold text-white mb-1 line-clamp-2">{selectedMovie.title}</h2>
             <div className="flex gap-2">
               <button
-                onClick={() => handlePlay(selectedMovie)}
+                onClick={() => playMovie(selectedMovie.id)}
                 className="px-4 py-2 rounded-full bg-primary text-bg-base text-sm font-semibold"
               >
                 ▶ Assistir
               </button>
               <button
-                onClick={() => setDetailsMovieId(selectedMovie.id)}
+                onClick={() => openMovieDetails(selectedMovie.id)}
                 className="px-4 py-2 rounded-full bg-white/10 text-white text-sm font-semibold backdrop-blur"
               >
                 ℹ️ Detalhes
@@ -111,20 +101,20 @@ export function MoviesScreen() {
         <div className="flex overflow-x-auto gap-2 p-3 no-scrollbar">
           {categories.map((cat) => (
             <button
-              key={cat.category_id}
+              key={cat.id}
               onClick={() => {
-                setActiveCategory(cat.category_id);
+                setActiveCategory(cat.id);
                 setSelectedId(null);
               }}
               className={`
                 shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
-                ${activeCategory === cat.category_id
+                ${activeCategory === cat.id
                   ? 'bg-primary text-bg-base'
                   : 'bg-bg-hover text-text-primary'
                 }
               `}
             >
-              {cat.category_name}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -137,17 +127,17 @@ export function MoviesScreen() {
             <button
               key={movie.id}
               onClick={() => setSelectedId(movie.id)}
-              onDoubleClick={() => handlePlay(movie)}
+              onDoubleClick={() => playMovie(movie.id)}
               className={`
                 flex flex-col rounded-lg overflow-hidden bg-bg-elevated text-left transition-all
                 ${selectedId === movie.id ? 'ring-2 ring-primary' : 'hover:ring-1 ring-border-subtle'}
               `}
             >
               <div className="aspect-[2/3] bg-bg-hover relative">
-                {movie.icon ? (
+                {movie.poster ? (
                   <img
-                    src={movie.icon}
-                    alt={movie.name}
+                    src={movie.poster}
+                    alt={movie.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -158,7 +148,7 @@ export function MoviesScreen() {
               </div>
               <div className="p-2">
                 <p className="text-xs font-medium text-text-primary line-clamp-2 leading-tight">
-                  {movie.name}
+                  {movie.title}
                 </p>
               </div>
             </button>
@@ -170,6 +160,8 @@ export function MoviesScreen() {
           </div>
         )}
       </div>
+
+      {detailsMovieId && <MovieDetailsModal />}
     </div>
   );
 }
