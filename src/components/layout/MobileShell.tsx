@@ -1,64 +1,52 @@
 import { useUIStore } from '@/state/uiStore';
-import { useTranslation } from 'react-i18next';
 
 interface MobileShellProps {
   children: React.ReactNode;
 }
 
+const ITEMS = [
+  { id: 'home',        icon: '🏠', label: 'Início',   screen: 'home' as const },
+  { id: 'channelList', icon: '📺', label: 'TV ao vivo', screen: 'channelList' as const },
+  { id: 'movies',      icon: '🎬', label: 'Filmes',   screen: 'movies' as const },
+  { id: 'series',      icon: '📼', label: 'Séries',   screen: 'series' as const },
+  { id: 'settings',    icon: '⚙️', label: 'Ajustes',  screen: 'settings' as const },
+];
+
 export function MobileShell({ children }: MobileShellProps) {
-  const { t } = useTranslation();
   const currentScreen = useUIStore((s) => s.currentScreen);
   const navigate = useUIStore((s) => s.navigate);
 
-  const menuItems = [
-    { id: 'home', label: t('nav.home', '🏠 Home'), screen: 'home' as const },
-    { id: 'channelList', label: t('nav.live_tv', '📺 TV ao vivo'), screen: 'channelList' as const },
-    { id: 'movies', label: t('nav.movies', '🎬 Filmes'), screen: 'movies' as const },
-    { id: 'series', label: t('nav.series', '📼 Séries'), screen: 'series' as const },
-    { id: 'settings', label: t('nav.settings', '⚙️ Configurações'), screen: 'settings' as const },
-  ];
-
-  const handleMenuClick = (screen: typeof menuItems[number]['screen']) => {
-    navigate(screen);
-  };
-
   return (
-    <div className="flex h-full w-full bg-bg-base text-white">
-      {/* Sidebar vertical à esquerda */}
-      <aside className="w-[200px] bg-bg-elevated border-r border-border-subtle flex flex-col py-4 px-2">
-        <div className="mb-6 px-2">
-          <h1 className="text-xl font-bold text-primary">ZUI IPTV</h1>
-          <p className="text-xs text-text-secondary mt-1">Mobile</p>
+    <div className="flex flex-col md:flex-row h-full w-full bg-bg-base">
+      {/* Retrato: barra inferior | Paisagem: sidebar vertical fina */}
+      <nav className="order-2 md:order-1 shrink-0 h-14 md:h-full md:w-24 bg-bg-elevated border-t md:border-t-0 md:border-r border-border-subtle flex flex-row md:flex-col items-stretch md:items-center md:py-4 md:gap-1 z-20">
+        <div className="hidden md:flex flex-col items-center gap-0.5 pb-3 mb-1 border-b border-border-subtle w-full">
+          <span className="text-sm font-bold text-primary leading-none">ZUI</span>
+          <span className="text-[9px] text-text-muted">Mobile</span>
         </div>
-        
-        <nav className="flex-1 flex flex-col gap-2">
-          {menuItems.map((item) => {
-            const isActive = currentScreen === item.screen;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleMenuClick(item.screen)}
-                className={`
-                  w-full text-left px-4 py-3 rounded-lg transition-all
-                  ${isActive 
-                    ? 'bg-primary/10 text-primary border-l-4 border-primary' 
-                    : 'text-text-primary hover:bg-bg-hover'
-                  }
-                `}
-              >
-                <span className="text-base font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+        {ITEMS.map((item) => {
+          const active = currentScreen === item.screen;
+          return (
+            <button
+              key={item.id}
+              onClick={() => navigate(item.screen)}
+              className={[
+                'flex-1 md:flex-none md:w-full flex flex-col items-center justify-center gap-0.5 py-1 md:py-2.5 md:mx-2 md:rounded-lg transition-colors',
+                active ? 'md:bg-primary/10' : '',
+              ].join(' ')}
+            >
+              <span className={`text-lg md:text-xl leading-none ${active ? '' : 'opacity-70'}`}>{item.icon}</span>
+              <span className={`text-[10px] md:text-[10px] leading-tight ${active ? 'text-primary font-semibold' : 'text-text-secondary'}`}>
+                {item.label}
+              </span>
+              <span className={`md:hidden h-0.5 w-8 rounded-full ${active ? 'bg-primary' : 'bg-transparent'}`} />
+            </button>
+          );
+        })}
+      </nav>
 
-        <div className="mt-auto pt-4 border-t border-border-subtle">
-          <p className="text-xs text-text-muted text-center">v0.9.5</p>
-        </div>
-      </aside>
-
-      {/* Área de conteúdo à direita */}
-      <main className="flex-1 overflow-auto bg-bg-base">
+      {/* Conteúdo */}
+      <main className="order-1 md:order-2 flex-1 overflow-y-auto min-h-0 min-w-0">
         {children}
       </main>
     </div>
