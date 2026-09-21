@@ -65,9 +65,9 @@ export function MoviesScreen() {
       {/* Hero do filme selecionado (banner grande no topo) */}
       {selectedMovie && (
         <div className="relative w-full aspect-video bg-bg-elevated shrink-0">
-          {selectedMovie.poster ? (
+          {selectedMovie.backdropUrl ?? selectedMovie.posterUrl ? (
             <img
-              src={selectedMovie.poster}
+              src={selectedMovie.backdropUrl ?? selectedMovie.posterUrl}
               alt={selectedMovie.title}
               className="w-full h-full object-cover"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -134,9 +134,9 @@ export function MoviesScreen() {
               `}
             >
               <div className="aspect-[2/3] bg-bg-hover relative">
-                {movie.poster ? (
+                {movie.posterUrl ? (
                   <img
-                    src={movie.poster}
+                    src={movie.posterUrl}
                     alt={movie.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
