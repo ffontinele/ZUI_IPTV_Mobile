@@ -32,12 +32,22 @@ export function EpisodeBrowserModal() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailsSeriesId, detailsStatus]);
 
-  if (!detailsSeriesId) return null;
-
   const episodesBySeason: Record<string, any[]> = detailsInfo?.episodes ?? {};
   const seasonKeys = Object.keys(episodesBySeason).sort((a, b) => Number(a) - Number(b));
   const activeKey = String(detailsActiveSeason ?? seasonKeys[0] ?? '');
   const episodes: any[] = episodesBySeason[activeKey] ?? [];
+
+  // Traz o episodio marcado pra frente da tela (auto-scroll)
+  useEffect(() => {
+    if (detailsStatus !== 'ready') return;
+    const t = setTimeout(() => {
+      const el = document.getElementById('ep-resume-row');
+      if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [detailsStatus, activeKey]);
+
+  if (!detailsSeriesId) return null;
 
   const credsOf = () => (window as any).__ZUI_XTREAM_CREDS;
 
@@ -97,7 +107,7 @@ export function EpisodeBrowserModal() {
             const isResume = !!ce && ce.season === Number(activeKey) && ce.episode === ep.episode_num;
             const thumb = ep.still ?? ep.image ?? ep.img ?? ep.cover ?? null;
             return (
-              <div key={ep.id} className={`flex items-center gap-3 px-4 py-3 border-b border-border-subtle/40 ${isResume ? 'bg-[#E8B567]/10 border-l-4 border-l-[#E8B567]' : ''}`}>
+              <div key={ep.id} id={isResume ? 'ep-resume-row' : undefined} className={`flex items-center gap-3 px-4 py-3 border-b border-border-subtle/40 ${isResume ? 'bg-[#E8B567]/10 border-l-4 border-l-[#E8B567]' : ''}`}>
                 <span className="w-9 h-9 shrink-0 rounded-lg bg-[#E8B567] text-[#161006] font-bold text-xs flex items-center justify-center">
                   {String(ep.episode_num).padStart(2, '0')}
                 </span>
