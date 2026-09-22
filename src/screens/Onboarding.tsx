@@ -337,7 +337,7 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
           <span className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-semibold">
             {t('onboarding.cloud_step1')}
           </span>
-          <button type="button" onClick={() => { try { (window as any).open('https://ffontinele.github.io/zui-sync/', '_blank'); } catch { /* ignore */ } }} className="flex items-center gap-3 px-5 py-3.5 rounded-xl bg-white/[0.04] border border-[#E8B567]/40 text-left">
+          <button type="button" onClick={() => { try { (window as any).open(`https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}`, '_blank'); } catch { /* ignore */ } }} className="flex items-center gap-3 px-5 py-3.5 rounded-xl bg-white/[0.04] border border-[#E8B567]/40 text-left">
             <span className="text-[18px]">🌐</span>
             <span className="font-mono text-[14px] text-[#E8B567] tracking-wide underline">ffontinele.github.io/zui-sync — tocar p/ abrir</span>
           </button>
@@ -411,8 +411,8 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
         <div className="flex flex-col items-center gap-0.5">
           <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">{t('onboarding.qr_hint')}</p>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => { try { (window as any).open('https://ffontinele.github.io/zui-sync/', '_blank'); } catch { /* ignore */ } }} className="text-[11px] text-[#E8B567] underline tracking-wide">Abrir no navegador</button>
-            <button type="button" onClick={() => { try { (navigator as any).clipboard?.writeText('https://ffontinele.github.io/zui-sync/'); } catch { /* ignore */ } }} className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white/70">📋 Copiar link</button>
+            <button type="button" onClick={() => { try { (window as any).open(`https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}`, '_blank'); } catch { /* ignore */ } }} className="text-[11px] text-[#E8B567] underline tracking-wide">Abrir no navegador</button>
+            <button type="button" onClick={() => { try { (navigator as any).clipboard?.writeText(`https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}`); } catch { /* ignore */ } }} className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white/70">📋 Copiar link</button>
           </div>
         </div>
 

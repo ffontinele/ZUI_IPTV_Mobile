@@ -26,7 +26,7 @@ export function MobileShell({ children }: MobileShellProps) {
             <span className="text-sm font-bold text-[#E8B567] leading-none">ZUI</span>
             <span className="text-[9px] text-text-muted">Mobile</span>
           </div>
-          <button onClick={() => useUIStore.getState().openModal('exit')} className="w-8 h-8 rounded-full bg-white/10 text-sm shrink-0">⏻</button>
+          <button onClick={() => useUIStore.getState().openModal('exit')} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#E8B567] shrink-0"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.78 0" /></svg></button>
         </div>
         {ITEMS.map((item) => {
           const active = currentScreen === item.screen;
@@ -48,7 +48,7 @@ export function MobileShell({ children }: MobileShellProps) {
           );
         })}
         <button onClick={() => useUIStore.getState().openModal('exit')} className="md:hidden flex-1 shrink-0 flex flex-col items-center justify-center gap-0.5 py-1">
-          <span className="text-base leading-none">⏻</span>
+          <span className="flex items-center justify-center h-5 text-[#E8B567]"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.78 0" /></svg></span>
           <span className="text-[9px] text-text-secondary">Energia</span>
         </button>
       </nav>

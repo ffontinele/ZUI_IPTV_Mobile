@@ -90,9 +90,18 @@ export function PlaylistsScreen() {
             <h1 className="text-2xl font-bold text-white leading-tight">Listas de Reprodução</h1>
             <p className="text-xs text-text-secondary mt-1">{sources.length} lista(s) · {enabledCount} ativa(s)</p>
           </div>
-          <button onClick={() => navigate('onboarding')} className="shrink-0 px-4 py-2.5 rounded-full bg-[#E8B567] text-[#161006] text-sm font-semibold">
-            + Nova lista
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => useUIStore.getState().openModal('exit')}
+              title="Reiniciar aplicativo"
+              className="w-10 h-10 rounded-full bg-white/10 border border-[#E8B567]/40 flex items-center justify-center text-[#E8B567]"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.78 0" /></svg>
+            </button>
+            <button onClick={() => navigate('onboarding')} className="px-4 py-2.5 rounded-full bg-[#E8B567] text-[#161006] text-sm font-semibold">
+              + Nova lista
+            </button>
+          </div>
         </header>
 
         {sources.length === 0 && (
