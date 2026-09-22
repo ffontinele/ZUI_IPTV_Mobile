@@ -28,9 +28,9 @@ export function EpisodeBrowserModal() {
 
   // Abre ja na temporada do ultimo episodio assistido
   useEffect(() => {
-    if (ce && ce.season) setDetailsActiveSeason(ce.season);
+    if (detailsStatus === 'ready' && ce && ce.season) setDetailsActiveSeason(ce.season);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detailsSeriesId]);
+  }, [detailsSeriesId, detailsStatus]);
 
   if (!detailsSeriesId) return null;
 
