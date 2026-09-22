@@ -460,7 +460,7 @@ function M3UStep({
   const isValid = /^https?:\/\/.+/.test(url.trim());
 
   return (
-    <div className="flex flex-col h-full px-16 py-10">
+    <div className="flex flex-col h-full px-4 py-4 overflow-y-auto">
       <BackButton focusKey="OB_M3U_BACK" onPress={onBack} />
 
       <div className="mt-8 mb-2">
@@ -518,7 +518,7 @@ function XtreamStep({
   const isValid = !!(host.trim() && username.trim() && password.trim());
 
   return (
-    <div className="flex flex-col h-full px-16 py-10">
+    <div className="flex flex-col h-full px-4 py-4 overflow-y-auto">
       <BackButton focusKey="OB_XT_BACK" onPress={onBack} />
 
       <div className="mt-8 mb-2">

@@ -111,7 +111,11 @@ export default function App() {
       if (now - lastBack < 350) { e.preventDefault(); e.stopImmediatePropagation(); return; }
       lastBack = now;
       const st = useUIStore.getState();
-      if (st.currentScreen === 'onboarding') return;
+      if (st.currentScreen === 'onboarding') {
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('Voltar'));
+        if (btn) btn.click();
+        return;
+      }
       if (st.modalOpen) { st.closeModal(); return; }
       const ms = useMoviesStore.getState();
       if (ms.detailsMovieId) { ms.closeMovieDetails(); return; }
