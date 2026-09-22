@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useSeriesStore } from '@/state/seriesStore';
 import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
 
+let lastSeriesSel: { cat: string; id: string | null } = { cat: '', id: null };
+
 export function SeriesScreen() {
   const { t } = useTranslation();
   const visibleSeries = useSeriesStore(s => s.visibleSeries);
@@ -20,7 +22,8 @@ export function SeriesScreen() {
   const openSeriesDetails = useSeriesStore(s => s.openSeriesDetails);
   const detailsSeriesId = useSeriesStore(s => s.detailsSeriesId);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => (lastSeriesSel.cat === useSeriesStore.getState().activeCategory ? lastSeriesSel.id : null));
+  const select = (id: string | null) => { setSelectedId(id); lastSeriesSel = { cat: useSeriesStore.getState().activeCategory, id }; };
 
   useEffect(() => {
     if (status === 'idle' || status === 'error') {
@@ -113,7 +116,7 @@ export function SeriesScreen() {
           {categories.filter((cat) => cat.id !== '__resume__' && cat.id !== '__favorites__').map((cat) => (
             <button
               key={cat.id}
-              onClick={() => { setActiveCategory(cat.id); setSelectedId(null); }}
+              onClick={() => { setActiveCategory(cat.id); setSelectedId(null); lastSeriesSel = { cat: cat.id, id: null }; }}
               className={`
                 shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
                 ${activeCategory === cat.id ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-[#E8B567]'}
@@ -131,11 +134,11 @@ export function SeriesScreen() {
           {visibleSeries.map((serie) => (
             <button
               key={serie.id}
-              onClick={() => setSelectedId(serie.id)}
+              onClick={() => select(serie.id)}
               onDoubleClick={() => void openSeriesDetails(serie.id)}
               className={`
                 flex flex-col rounded-lg overflow-hidden bg-bg-elevated text-left transition-all
-                ${selectedId === serie.id ? 'ring-2 ring-[#E8B567]' : ''}
+                ${selectedId === serie.id ? 'ring-2 ring-[#E8B567] bg-[#E8B567]/10' : ''}
               `}
             >
               <div className="aspect-[2/3] bg-bg-hover relative">

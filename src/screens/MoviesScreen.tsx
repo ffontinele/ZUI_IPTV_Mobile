@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useMoviesStore } from '@/state/moviesStore';
 import { MovieDetailsModal } from '@/components/movies/MovieDetailsModal';
 
+let lastMovieSel: { cat: string; id: string | null } = { cat: '', id: null };
+
 export function MoviesScreen() {
   const { t } = useTranslation();
   const visibleMovies = useMoviesStore(s => s.visibleMovies);
@@ -21,7 +23,8 @@ export function MoviesScreen() {
   const openMovieDetails = useMoviesStore(s => s.openMovieDetails);
   const detailsMovieId = useMoviesStore(s => s.detailsMovieId);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => (lastMovieSel.cat === useMoviesStore.getState().activeCategory ? lastMovieSel.id : null));
+  const select = (id: string | null) => { setSelectedId(id); lastMovieSel = { cat: useMoviesStore.getState().activeCategory, id }; };
 
   useEffect(() => {
     if (status === 'idle' || status === 'error') {
@@ -123,6 +126,7 @@ export function MoviesScreen() {
               onClick={() => {
                 setActiveCategory(cat.id);
                 setSelectedId(null);
+                lastMovieSel = { cat: cat.id, id: null };
               }}
               className={`
                 shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
@@ -144,7 +148,7 @@ export function MoviesScreen() {
           {visibleMovies.map((movie) => (
             <button
               key={movie.id}
-              onClick={() => setSelectedId(movie.id)}
+              onClick={() => select(movie.id)}
               onDoubleClick={() => playMovie(movie.id)}
               className={`
                 flex flex-col rounded-lg overflow-hidden bg-bg-elevated text-left transition-all

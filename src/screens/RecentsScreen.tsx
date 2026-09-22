@@ -69,7 +69,7 @@ export function RecentsScreen() {
 
       {recentChannels.length > 0 && (
         <section>
-          <h2 className="text-xs uppercase tracking-wider text-text-muted mb-2">📺 Últimos canais</h2>
+          <div className="flex items-center justify-between mb-2"><h2 className="text-xs uppercase tracking-wider text-text-muted">📺 Últimos canais</h2><button onClick={() => usePlaylistStore.setState({ recentIds: [] } as any)} className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-300 font-semibold">🗑 Limpar</button></div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {recentChannels.map((ch) => (
               <button key={ch.id} onClick={() => playChannel(ch)} className="shrink-0 w-36 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
@@ -85,7 +85,7 @@ export function RecentsScreen() {
 
       {resumeMovies.length > 0 && (
         <section>
-          <h2 className="text-xs uppercase tracking-wider text-text-muted mb-2">🎬 Continuar assistindo</h2>
+          <div className="flex items-center justify-between mb-2"><h2 className="text-xs uppercase tracking-wider text-text-muted">🎬 Continuar assistindo</h2><button onClick={() => useMoviesStore.getState().clearResume()} className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-300 font-semibold">🗑 Limpar</button></div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {resumeMovies.map((m) => (
               <button key={m.id} onClick={() => playMovie(m.id)} className="shrink-0 w-28 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
@@ -104,7 +104,7 @@ export function RecentsScreen() {
 
       {resumeSeries.length > 0 && (
         <section>
-          <h2 className="text-xs uppercase tracking-wider text-text-muted mb-2">📼 Continuar séries</h2>
+          <div className="flex items-center justify-between mb-2"><h2 className="text-xs uppercase tracking-wider text-text-muted">📼 Continuar séries</h2><button onClick={() => useSeriesStore.getState().clearResume()} className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-300 font-semibold">🗑 Limpar</button></div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {resumeSeries.map((s) => (
               <button key={s.id} onClick={() => void openSeriesDetails(s.id)} className="shrink-0 w-28 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">

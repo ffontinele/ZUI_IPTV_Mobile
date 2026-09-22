@@ -1,429 +1,125 @@
-// EpisodeBrowserModal — fullscreen overlay episode browser.
-// Left panel: series poster + info + season pills.
-// Right panel: scrollable episode list for the active season.
-// TV-safe: D-pad navigates pills ↔ episodes; Back key closes.
-
-import { useEffect } from 'react';
-import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation';
-import { useTranslation } from 'react-i18next';
+// EpisodeBrowserModal — mobile: temporadas em chips, episodios com marca de "onde parou"
+import { useEffect, useMemo } from 'react';
 import { useSeriesStore } from '@/state/seriesStore';
-import type { XtreamSeriesEpisode } from '@/types/xtream';
-
-// ─── Season Tab ────────────────────────────────────────────────────────────────
-
-function SeasonTab({
-  seasonNum,
-  isActive,
-  onSelect,
-}: {
-  seasonNum: number;
-  isActive: boolean;
-  onSelect: () => void;
-}) {
-  const { ref, focused } = useFocusable({
-    focusKey: `EBM_S${seasonNum}`,
-    onEnterPress: onSelect,
-  });
-
-  return (
-    <button
-      ref={ref as React.RefObject<HTMLButtonElement>}
-      onClick={onSelect}
-      className={[
-        'px-3 h-8 rounded-lg text-[12px] font-bold tabular-nums transition-all shrink-0 border',
-        focused
-          ? 'border-[#E8B567]/55 bg-[#E8B567]/[0.12] text-[#E8B567] shadow-[0_0_16px_-6px_#E8B567] scale-[1.05]'
-          : isActive
-            ? 'border-2 border-white bg-[#E8B567] text-[#0e0b0a]'
-            : 'border-2 border-[#E8B567] bg-[#E8B567] text-[#0e0b0a]',
-      ].join(' ')}
-    >
-      S{String(seasonNum).padStart(2, '0')}
-    </button>
-  );
-}
-
-// ─── Episode Row ───────────────────────────────────────────────────────────────
-
-import { useDownloadAndCopy, safeName } from '@/hooks/useDownloadAndCopy';
+import { useDownloadsStore } from '@/state/downloadsStore';
 import { buildSeriesEpisodeUrl } from '@/services/series.service';
-import { getXtreamCreds } from '@/lib/xtreamHelpers';
-import { useToast } from '@/components/ui/Toast';
 
-function EpisodeRow({
-  episode,
-  onPlay,
-  onDownload,
-  onCopy,
-  isCurrent,
-}: {
-  episode: XtreamSeriesEpisode;
-  onPlay: () => void;
-  onDownload?: () => void;
-  onCopy?: () => void;
-  isCurrent?: boolean;
-}) {
-  const { t } = useTranslation();
-  const { ref, focused } = useFocusable({
-    focusKey: `EBM_E${episode.id}`,
-    onEnterPress: onPlay,
-  });
-
-  // Scroll into view when focused
-  useEffect(() => {
-    if (focused && ref.current) {
-      (ref.current as HTMLElement).scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }, [focused, ref]);
-
-  const dur = episode.info?.duration;        // "00:45:00" or "45:00"
-  const plot = episode.info?.plot;
-  const thumb = episode.info?.movie_image;
-  const epNum = episode.episode_num;
-
-  // Strip leading "00:" so "00:45:12" → "45:12"
-  const durationLabel = dur ? dur.replace(/^00:/, '') : null;
-
-  return (
-    <div
-      ref={ref as React.RefObject<HTMLDivElement>}
-      onClick={onPlay}
-      className={[
-        'flex items-start gap-4 px-4 py-3.5 rounded-xl transition-all cursor-pointer',
-        focused
-          ? 'bg-[#E8B567]/[0.08] border border-[#E8B567]/30 shadow-[0_0_20px_-8px_#E8B567]'
-          : 'border border-transparent',
-      ].join(' ')}
-    >
-      {/* Episode number badge */}
-      <div className={[
-        'shrink-0 w-10 h-10 rounded-lg grid place-items-center text-[13px] font-bold tabular-nums border transition-all',
-        focused
-          ? 'border-[#E8B567]/50 bg-[#E8B567]/[0.15] text-[#E8B567]'
-          : 'border-2 border-[#E8B567] bg-[#E8B567] text-[#0e0b0a]',
-      ].join(' ')}>
-        {String(epNum).padStart(2, '0')}
-      </div>
-
-      {/* Thumbnail */}
-      {thumb ? (
-        <div className="shrink-0 w-[88px] h-[50px] rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.06]">
-          <img src={thumb} alt="" className="w-full h-full object-cover" />
-        </div>
-      ) : null}
-
-      {/* Title + synopsis */}
-      <div className="flex-1 min-w-0 flex flex-col gap-1 justify-center">
-        <div className={[
-          'text-[14px] font-medium leading-tight truncate transition-colors',
-          focused ? 'text-[#E8B567]' : 'text-white/90',
-        ].join(' ')}>
-          {episode.title || t('episode_browser.episode_fallback', { num: epNum })}
-          {isCurrent && (
-            <span className="ml-2 px-1.5 py-0.5 rounded bg-[#E8B567] text-[#0e0b0a] text-[9px] font-bold uppercase tracking-wider align-middle">
-              Continuar
-            </span>
-          )}
-        </div>
-        {plot && (
-          <p className="text-[11px] text-white/35 leading-relaxed line-clamp-2">{plot}</p>
-        )}
-      </div>
-
-      {/* Acoes: baixar / copiar link */}
-      <div className="shrink-0 flex items-center gap-1.5">
-        <button
-          onClick={(e) => { e.stopPropagation(); if (onDownload) onDownload(); }}
-          className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-[#E8B567] text-[#0e0b0a] text-[11px] font-bold shadow-[0_0_12px_-2px_#E8B567] hover:scale-[1.03] transition-all"
-          title="Baixar episodio"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-          Baixar
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); if (onCopy) onCopy(); }}
-          className="flex items-center gap-1.5 px-3 h-8 rounded-full border-2 border-[#E8B567]/50 bg-white/5 text-[#E8B567] text-[11px] font-bold hover:bg-[#E8B567]/10 transition-all"
-          title="Copiar link"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-          Copiar
-        </button>
-      </div>
-
-      {/* Duration + play icon */}
-      <div className="shrink-0 flex flex-col items-end justify-center gap-1.5 min-w-[52px]">
-        {durationLabel && (
-          <span className="text-[11px] tabular-nums text-white/35">{durationLabel}</span>
-        )}
-        {focused && (
-          <div className="w-8 h-8 rounded-full bg-[#E8B567] grid place-items-center shadow-[0_0_16px_-4px_#E8B567]">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#0e0b0a] translate-x-[1px]">
-              <path d="M7 4v16l13-8z" />
-            </svg>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function fmt(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
-
-// ─── Main Modal ────────────────────────────────────────────────────────────────
 
 export function EpisodeBrowserModal() {
-  const { t } = useTranslation();
-  const series = useSeriesStore(s =>
-    s.detailsSeriesId
-      ? (s.allSeries.find(x => x.id === s.detailsSeriesId) ?? null)
-      : null
+  const detailsSeriesId = useSeriesStore((s) => s.detailsSeriesId);
+  const detailsInfo = useSeriesStore((s) => s.detailsInfo) as any;
+  const detailsStatus = useSeriesStore((s) => s.detailsStatus);
+  const detailsActiveSeason = useSeriesStore((s) => s.detailsActiveSeason);
+  const setDetailsActiveSeason = useSeriesStore((s) => s.setDetailsActiveSeason);
+  const playEpisode = useSeriesStore((s) => s.playEpisode);
+  const closeSeriesDetails = useSeriesStore((s) => s.closeSeriesDetails);
+  const currentEpisode = useSeriesStore((s) => s.currentEpisode);
+
+  const seriesTitle = useMemo(
+    () => useSeriesStore.getState().allSeries.find((s) => s.id === detailsSeriesId)?.title ?? '',
+    [detailsSeriesId]
   );
-  const info              = useSeriesStore(s => s.detailsInfo);
-  const status            = useSeriesStore(s => s.detailsStatus);
-  const error             = useSeriesStore(s => s.detailsError);
-  const activeSeason      = useSeriesStore(s => s.detailsActiveSeason);
-  const ceInfo            = useSeriesStore(s => s.detailsSeriesId ? s.currentEpisode[s.detailsSeriesId] : undefined);
-  const closeSeriesDetails      = useSeriesStore(s => s.closeSeriesDetails);
-  const setDetailsActiveSeason  = useSeriesStore(s => s.setDetailsActiveSeason);
-  const playEpisode             = useSeriesStore(s => s.playEpisode);
-  const { download, copyLink }   = useDownloadAndCopy();
-  const openSeriesDetails       = useSeriesStore(s => s.openSeriesDetails);
+  const ce = detailsSeriesId ? currentEpisode[detailsSeriesId] : undefined;
 
-  // Back / Backspace key → close
+  // Abre ja na temporada do ultimo episodio assistido
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Backspace' || e.key === 'GoBack' || e.keyCode === 461) {
-        e.preventDefault(); e.stopPropagation(); closeSeriesDetails();
-      }
-    };
-    window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
-  }, [closeSeriesDetails]);
-
-  const { ref, focusKey, setFocus } = useFocusable({
-    focusKey: 'EBM_ROOT',
-    isFocusBoundary: true,
-    trackChildren: true,
-    saveLastFocusedChild: true,
-  });
-
-  const { ref: seasonRailRef, focusKey: seasonRailFocusKey } = useFocusable({
-    focusKey: 'EBM_SEASON_RAIL',
-    trackChildren: true,
-  });
-
-  const seasonEpisodes = info?.episodes[String(activeSeason)] ?? [];
-  const seasonNums = info
-    ? Object.keys(info.episodes).map(Number).sort((a, b) => a - b)
-    : [];
-
-  // Auto-focus first episode when data loads or season changes
-  useEffect(() => {
-    if (status === 'ready' && seasonEpisodes.length > 0) {
-      const firstEp = seasonEpisodes[0];
-      if (firstEp) {
-        const timer = setTimeout(() => setFocus(`EBM_E${firstEp.id}`), 80);
-        return () => clearTimeout(timer);
-      }
-    }
+    if (ce && ce.season) setDetailsActiveSeason(ce.season);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, activeSeason]);
+  }, [detailsSeriesId]);
 
-  if (!series) return null;
+  if (!detailsSeriesId) return null;
 
-  const c1 = series.gradient?.[0] ?? '#3A3A3A';
-  const c2 = series.gradient?.[1] ?? '#1A1A1A';
+  const episodesBySeason: Record<string, any[]> = detailsInfo?.episodes ?? {};
+  const seasonKeys = Object.keys(episodesBySeason).sort((a, b) => Number(a) - Number(b));
+  const activeKey = String(detailsActiveSeason ?? seasonKeys[0] ?? '');
+  const episodes: any[] = episodesBySeason[activeKey] ?? [];
+
+  const credsOf = () => (window as any).__ZUI_XTREAM_CREDS;
+
+  const download = (ep: any) => {
+    const creds = credsOf();
+    if (!creds) return;
+    const ss = String(Number(activeKey)).padStart(2, '0');
+    const nn = String(ep.episode_num).padStart(2, '0');
+    useDownloadsStore.getState().add({
+      id: `series-ep-${ep.id}`,
+      kind: 'episode',
+      title: seriesTitle,
+      subtitle: `S${ss}:E${nn} - ${ep.title ?? ''}`,
+      url: buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension),
+      fileName: `${seriesTitle}_S${ss}E${nn}.${ep.container_extension ?? 'mp4'}`,
+      status: 'queued',
+      progress: 0,
+      addedAt: Date.now(),
+    } as any);
+  };
+
+  const copy = (ep: any) => {
+    const creds = credsOf();
+    if (!creds) return;
+    try { (navigator as any).clipboard?.writeText(buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension)); } catch { /* ignore */ }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-[#0e0b0a]/85 backdrop-blur-sm"
-        onClick={closeSeriesDetails}
-      />
-
-      {/* Close button */}
-      <button
-        onClick={closeSeriesDetails}
-        className="absolute top-6 right-8 z-10 w-9 h-9 rounded-full border border-white/[0.10] bg-white/[0.05] grid place-items-center text-white/40 hover:text-white/70 hover:border-white/25 transition-all"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-
-      {/* Panel */}
-      <FocusContext.Provider value={focusKey}>
-        <div
-          ref={ref as React.RefObject<HTMLDivElement>}
-          className="relative w-[97vw] h-[94vh] max-w-[1600px] rounded-[28px] overflow-hidden border border-white/[0.08] flex"
-          style={{ background: `linear-gradient(145deg, ${c1}18 0%, #131110 35%)` }}
-        >
-          {/* ── Left panel: series art + info + season pills ── */}
-          <div className="w-[280px] shrink-0 flex flex-col gap-5 px-6 py-6 border-r border-white/[0.06] overflow-y-auto">
-
-            {/* Poster */}
-            <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden border border-white/[0.08] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] shrink-0">
-              {series.posterUrl ? (
-                <img src={series.posterUrl} alt={series.title} className="w-full h-full object-cover" />
-              ) : (
-                <div
-                  className="absolute inset-0 grid place-items-center"
-                  style={{ background: `linear-gradient(155deg, ${c1}, ${c2})` }}
-                >
-                  <span className="font-serif italic text-[80px] text-white/10 leading-none">
-                    {series.title.charAt(0)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Title + meta */}
-            <div className="flex flex-col gap-1.5">
-              <h2 className="font-serif text-[18px] font-light text-white leading-tight line-clamp-3">
-                {series.title}
-              </h2>
-              <div className="flex items-center gap-2 text-[11px] text-white/45 flex-wrap">
-                <span className="text-[#E8B567] font-bold">★ {series.rating.toFixed(1)}</span>
-                {series.year > 0 && <><span>·</span><span>{series.year}</span></>}
-                {series.genre && <><span>·</span><span className="truncate">{series.genre}</span></>}
-              </div>
-              {series.synopsis && (
-                <p className="text-[11px] text-white/30 leading-relaxed line-clamp-3 mt-1">
-                  {series.synopsis}
-                </p>
-              )}
-            </div>
-
-            {/* Season rail */}
-            {seasonNums.length > 1 && (
-              <div className="flex flex-col gap-2.5">
-                <span className="text-[9px] uppercase tracking-[0.35em] text-white/30 font-semibold">
-                  {t('episode_browser.season_label')}
-                </span>
-                <FocusContext.Provider value={seasonRailFocusKey}>
-                  <div ref={seasonRailRef as React.RefObject<HTMLDivElement>} className="flex flex-wrap gap-2">
-                    {seasonNums.map(s => (
-                      <SeasonTab
-                        key={s}
-                        seasonNum={s}
-                        isActive={s === activeSeason}
-                        onSelect={() => setDetailsActiveSeason(s)}
-                      />
-                    ))}
-                  </div>
-                </FocusContext.Provider>
-              </div>
-            )}
-
-            {/* Footer hint */}
-            <button
-              onClick={closeSeriesDetails}
-              className='mt-auto pt-3 flex items-center gap-2 px-3 h-9 rounded-full border-2 border-[#E8B567] bg-[#E8B567] text-[#0e0b0a] text-[11px] uppercase tracking-[0.25em] font-bold transition-all'
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Voltar
-            </button>
-          </div>
-
-          {/* ── Right panel: episode list ── */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-            {/* Panel header */}
-            <div className="px-6 py-5 border-b border-white/[0.06] shrink-0 flex items-baseline gap-3">
-              <h3 className="font-serif text-[22px] font-light text-white leading-none">
-                {seasonNums.length === 1
-                  ? t('episode_browser.episodes')
-                  : t('episode_browser.season', { num: String(activeSeason).padStart(2, '0') })}
-              </h3>
-              {status === 'ready' && (
-                <span className="text-[13px] text-white/30">
-                  {t('episode_browser.count', { count: seasonEpisodes.length })}
-                </span>
-              )}
-            </div>
-
-            {/* Loading */}
-            {status === 'loading' && (
-              <div className="flex-1 grid place-items-center">
-                <div className="flex flex-col items-center gap-3 text-white/40">
-                  <svg className="w-7 h-7 animate-spin text-[#E8B567]" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"
-                      strokeDasharray="31.4" strokeDashoffset="10" />
-                  </svg>
-                  <span className="font-serif italic text-[14px]">{t('episode_browser.loading')}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Error */}
-            {status === 'error' && (
-              <div className="flex-1 grid place-items-center">
-                <div className="flex flex-col items-center gap-3 text-center max-w-[300px]">
-                  <svg className="w-10 h-10 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4M12 16h.01" strokeLinecap="round" />
-                  </svg>
-                  <p className="font-serif italic text-[14px] text-white/50">{error ?? t('episode_browser.error')}</p>
-                  <button
-                    onClick={() => void openSeriesDetails(series.id)}
-                    className="px-4 h-9 rounded-full border border-[#E8B567]/55 text-[#E8B567] text-[11px] uppercase tracking-[0.25em] font-semibold"
-                  >
-                    {t('episode_browser.retry')}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Empty */}
-            {status === 'ready' && seasonEpisodes.length === 0 && (
-              <div className="flex-1 grid place-items-center">
-                <p className="font-serif italic text-[15px] text-white/35">
-                  {t('episode_browser.empty')}
-                </p>
-              </div>
-            )}
-
-            {/* Episode list */}
-            {status === 'ready' && seasonEpisodes.length > 0 && (
-              <div className="flex-1 overflow-y-auto px-3 py-3">
-                {seasonEpisodes.map(ep => (
-                  <EpisodeRow
-                    key={ep.id}
-                    episode={ep}
-                    isCurrent={!!(ceInfo && ceInfo.season === activeSeason && ceInfo.episode === ep.episode_num)}
-                    onPlay={() => playEpisode(ep, series.title, String(activeSeason))}
-                    onDownload={() => {
-                      const creds = getXtreamCreds();
-                      if (!creds) { useToast.getState().show('❌ Sem fonte Xtream ativa'); return; }
-                      const sn = String(Number(activeSeason)).padStart(2, '0');
-                      const en = String(ep.episode_num).padStart(2, '0');
-                      const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension);
-                      download({
-                        id: 'series-ep-' + ep.id,
-                        kind: 'episode',
-                        title: series.title,
-                        subtitle: 'S' + sn + ':E' + en + ' - ' + (ep.title || 'Episodio ' + ep.episode_num),
-                        url,
-                        fileName: safeName(series.title) + '_s' + sn + 'e' + en + '.' + (ep.container_extension || 'mp4'),
-                      });
-                    }}
-                    onCopy={() => {
-                      const creds = getXtreamCreds();
-                      if (!creds) { useToast.getState().show('❌ Sem fonte Xtream ativa'); return; }
-                      const sn = String(Number(activeSeason)).padStart(2, '0');
-                      const en = String(ep.episode_num).padStart(2, '0');
-                      const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension);
-                      copyLink(url, series.title + ' - S' + sn + 'E' + en);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[960] bg-black/80 flex items-end md:items-center justify-center" onClick={closeSeriesDetails}>
+      <div className="w-full max-w-2xl max-h-[88vh] bg-bg-elevated border border-border-subtle rounded-t-2xl md:rounded-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle shrink-0">
+          <h3 className="flex-1 min-w-0 text-sm font-bold text-white truncate">📼 {seriesTitle}</h3>
+          <button onClick={closeSeriesDetails} className="w-8 h-8 rounded-full bg-white/10 text-sm shrink-0">✕</button>
         </div>
-      </FocusContext.Provider>
+
+        <div className="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar border-b border-border-subtle shrink-0">
+          {seasonKeys.map((k) => (
+            <button
+              key={k}
+              onClick={() => setDetailsActiveSeason(Number(k))}
+              className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold ${activeKey === k ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-primary'}`}
+            >
+              S{String(Number(k)).padStart(2, '0')}
+              {ce && ce.season === Number(k) ? ' · ▶' : ''}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {detailsStatus === 'loading' && (
+            <div className="flex items-center justify-center h-32 text-text-secondary text-sm">Carregando episódios...</div>
+          )}
+          {detailsStatus === 'ready' && episodes.length === 0 && (
+            <div className="flex items-center justify-center h-32 text-text-muted text-sm">Nenhum episódio nesta temporada</div>
+          )}
+          {episodes.map((ep) => {
+            const isResume = !!ce && ce.season === Number(activeKey) && ce.episode === ep.episode_num;
+            const thumb = ep.still ?? ep.image ?? ep.img ?? ep.cover ?? null;
+            return (
+              <div key={ep.id} className={`flex items-center gap-3 px-4 py-3 border-b border-border-subtle/40 ${isResume ? 'bg-[#E8B567]/10 border-l-4 border-l-[#E8B567]' : ''}`}>
+                <span className="w-9 h-9 shrink-0 rounded-lg bg-[#E8B567] text-[#161006] font-bold text-xs flex items-center justify-center">
+                  {String(ep.episode_num).padStart(2, '0')}
+                </span>
+                {thumb ? (
+                  <img src={thumb} alt="" className="w-16 h-10 rounded object-cover shrink-0" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                ) : null}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-text-primary truncate">{ep.title ?? `Episódio ${ep.episode_num}`}</p>
+                  {isResume && (
+                    <p className="text-[11px] text-[#E8B567] font-semibold mt-0.5">▶ Continuar de {fmt(ce?.resumeSec ?? 0)}</p>
+                  )}
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => playEpisode(ep, seriesTitle, activeKey)} className="w-9 h-9 rounded-full bg-[#E8B567] text-[#161006] text-sm font-bold">▶</button>
+                  <button onClick={() => download(ep)} className="w-9 h-9 rounded-full bg-bg-hover text-sm">⬇</button>
+                  <button onClick={() => copy(ep)} className="w-9 h-9 rounded-full bg-bg-hover text-sm">🔗</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
