@@ -1,6 +1,5 @@
 // SettingsScreen — mobile: cards uniformes, sem Downloads (aba propria), modais leves
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useSettingsStore, LANGUAGE_LOCALES } from '@/state/settingsStore';
 import { useParentalStore } from '@/state/parentalStore';
 import { usePlaylistStore } from '@/state/playlistStore';
@@ -10,7 +9,6 @@ import { useSeriesStore } from '@/state/seriesStore';
 type Modal = null | 'lang' | 'subs' | 'hideTv' | 'hideMovies' | 'hideSeries';
 
 export function SettingsScreen() {
-  const { t } = useTranslation();
   const [modal, setModal] = useState<Modal>(null);
 
   const settings = useSettingsStore((s) => s as any);

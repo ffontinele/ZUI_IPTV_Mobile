@@ -1,11 +1,9 @@
 // PlaylistsScreen — mobile: tela inteira rola, cards uniformes
-import { useTranslation } from 'react-i18next';
 import { useSourceStore } from '@/state/sourceStore';
 import { usePlaylistStore } from '@/state/playlistStore';
 import { useUIStore } from '@/state/uiStore';
 
 export function PlaylistsScreen() {
-  const { t } = useTranslation();
   const sources = useSourceStore((s) => s.sources);
   const syncSource = useSourceStore((s) => s.syncSource);
   const channelsBySource = usePlaylistStore((s) => s.channelsBySource);
