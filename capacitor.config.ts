@@ -5,6 +5,13 @@ const config: CapacitorConfig = {
   appName: 'ZUI IPTV Mobile',
   webDir: 'dist',
   plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      androidScaleType: "CENTER_CROP",
+      backgroundColor: "#08080c",
+      showSpinner: false,
+    },
     CapacitorHttp: { enabled: true },
   },
   android: { allowMixedContent: true },
