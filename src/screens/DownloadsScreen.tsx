@@ -1,6 +1,9 @@
-// DownloadsScreen — lista de downloads com progresso e remocao
+// DownloadsScreen — mobile: todas as acoes dentro de cada card
 import { useEffect } from 'react';
 import { useDownloadsStore } from '@/state/downloadsStore';
+import { usePlayerStore } from '@/state/playerStore';
+import { useUIStore } from '@/state/uiStore';
+import { useToast } from '@/components/ui/Toast';
 
 const STATUS_LABEL: Record<string, string> = {
   queued: 'Na fila',
@@ -12,42 +15,82 @@ const STATUS_LABEL: Record<string, string> = {
 export function DownloadsScreen() {
   const items = useDownloadsStore((s) => s.items);
   const remove = useDownloadsStore((s) => s.remove);
+  const navigate = useUIStore((s) => s.navigate);
+  const showToast = useToast((s) => s.show);
 
   useEffect(() => {
     useDownloadsStore.getState().hydrate();
   }, []);
 
+  const watch = (it: any) => {
+    if (it.status !== 'done' || !it.filePath) {
+      showToast('Ainda não está pronto para assistir');
+      return;
+    }
+    const url = it.filePath.startsWith('file://') ? it.filePath : 'file://' + it.filePath;
+    usePlayerStore.getState().setSource({ id: it.id, name: it.title, url });
+    navigate('player');
+  };
+
+  const copy = (it: any) => {
+    try {
+      (navigator as any).clipboard?.writeText(it.url);
+      showToast('URL copiada');
+    } catch {
+      showToast('Não foi possível copiar');
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-bg-base">
-      <div className="sticky top-0 z-10 bg-bg-elevated border-b border-border-subtle p-4">
-        <h1 className="text-lg font-bold text-white">Downloads</h1>
-        <p className="text-xs text-text-secondary mt-0.5">{items.length} item(ns)</p>
-      </div>
-      <div className="flex-1 overflow-y-auto">
+    <div className="h-full overflow-y-auto bg-bg-base">
+      <div className="p-4 pb-6 flex flex-col gap-3 max-w-3xl mx-auto">
+        <header>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[#E8B567] mb-1">Biblioteca local</p>
+          <h1 className="text-2xl font-bold text-white">Downloads</h1>
+          <p className="text-xs text-text-secondary mt-1">{items.length} item(ns)</p>
+        </header>
+
         {items.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-40 gap-2 text-text-muted text-sm">
+          <div className="rounded-xl bg-bg-elevated border border-border-subtle p-6 flex flex-col items-center gap-2 text-text-muted text-sm text-center">
             <span className="text-3xl">⬇️</span>
-            Nenhum download ainda
+            Nenhum download ainda. Baixe pela tela de detalhes de um filme ou episódio.
           </div>
         )}
+
         {items.map((it) => (
-          <div key={it.id} className="px-4 py-3 border-b border-border-subtle/40">
+          <div key={it.id} className="rounded-xl bg-bg-elevated border border-border-subtle p-3.5 flex flex-col gap-2.5">
             <div className="flex items-start gap-3">
-              <span className="text-xl">{it.kind === 'movie' ? '🎬' : '📼'}</span>
+              <span className="text-xl shrink-0">{it.kind === 'movie' ? '🎬' : '📼'}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-text-[#E8B567] truncate">{it.title}</p>
-                {it.subtitle && <p className="text-xs text-text-secondary truncate">{it.subtitle}</p>}
-                <div className="mt-2 h-1.5 rounded-full bg-bg-hover overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${it.status === 'error' ? 'bg-red-400' : it.status === 'done' ? 'bg-emerald-400' : 'bg-[#E8B567]'}`}
-                    style={{ width: `${Math.min(100, it.progress) }%` }}
-                  />
-                </div>
-                <p className="text-[11px] text-text-muted mt-1">
-                  {STATUS_LABEL[it.status] ?? it.status} · {Math.round(it.progress)}%
-                </p>
+                <p className="text-sm font-semibold text-white leading-snug line-clamp-2">{it.title}</p>
+                {it.subtitle && <p className="text-[11px] text-text-secondary truncate mt-0.5">{it.subtitle}</p>}
               </div>
-              <button onClick={() => remove(it.id)} className="px-2 py-1 text-base">🗑</button>
+              <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold ${it.status === 'done' ? 'bg-emerald-400/15 text-emerald-300' : it.status === 'error' ? 'bg-red-500/15 text-red-300' : 'bg-[#E8B567]/15 text-[#E8B567]'}`}>
+                {STATUS_LABEL[it.status] ?? it.status}
+              </span>
+            </div>
+
+            <div className="h-1.5 rounded-full bg-bg-hover overflow-hidden">
+              <div
+                className={`h-full rounded-full ${it.status === 'error' ? 'bg-red-400' : it.status === 'done' ? 'bg-emerald-400' : 'bg-[#E8B567]'}`}
+                style={{ width: `${Math.min(100, it.progress)}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-text-muted">{Math.round(it.progress)}%</p>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => watch(it)}
+                className={`px-3.5 py-2 rounded-full text-xs font-semibold ${it.status === 'done' ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-muted'}`}
+              >
+                ▶ Assistir
+              </button>
+              <button onClick={() => copy(it)} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">
+                🔗 Copiar
+              </button>
+              <button onClick={() => remove(it.id)} className="px-3.5 py-2 rounded-full bg-red-500/10 text-red-300 text-xs font-semibold">
+                🗑 Excluir
+              </button>
             </div>
           </div>
         ))}
