@@ -140,7 +140,10 @@ export function HomeScreen() {
                 <div className="aspect-[2/3] bg-bg-hover">
                   {s.posterUrl ? <img src={s.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl">📼</div>}
                 </div>
-                <p className="p-1.5 text-[10px] text-text-[#E8B567] truncate">{s.title}</p>
+                <p className="p-1.5 text-[10px] text-text-primary truncate">{s.title}</p>
+                {currentEpisode[s.id] && (
+                  <p className="px-1.5 pb-1.5 text-[9px] text-[#E8B567]">S{currentEpisode[s.id].season} E{currentEpisode[s.id].episode}</p>
+                )}
               </button>
             ))}
           </div>
