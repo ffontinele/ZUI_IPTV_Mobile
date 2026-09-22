@@ -21,9 +21,12 @@ export function MobileShell({ children }: MobileShellProps) {
   return (
     <div className="flex flex-col md:flex-row h-full w-full bg-bg-base">
       <nav className="order-2 md:order-1 shrink-0 h-14 md:h-full md:w-24 bg-bg-elevated border-t md:border-t-0 md:border-r border-border-subtle flex flex-row md:flex-col items-stretch md:items-center md:py-3 md:gap-1 z-20 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto no-scrollbar">
-        <div className="hidden md:flex flex-col items-center gap-0.5 pb-2 mb-1 border-b border-border-subtle w-full shrink-0">
-          <span className="text-sm font-bold text-[#E8B567] leading-none">ZUI</span>
-          <span className="text-[9px] text-text-muted">Mobile</span>
+        <div className="hidden md:flex items-center justify-center gap-2 pb-2 mb-1 border-b border-border-subtle w-full shrink-0">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-sm font-bold text-[#E8B567] leading-none">ZUI</span>
+            <span className="text-[9px] text-text-muted">Mobile</span>
+          </div>
+          <button onClick={() => useUIStore.getState().openModal('exit')} className="w-8 h-8 rounded-full bg-white/10 text-sm shrink-0">⏻</button>
         </div>
         {ITEMS.map((item) => {
           const active = currentScreen === item.screen;
@@ -44,6 +47,10 @@ export function MobileShell({ children }: MobileShellProps) {
             </button>
           );
         })}
+        <button onClick={() => useUIStore.getState().openModal('exit')} className="md:hidden flex-1 shrink-0 flex flex-col items-center justify-center gap-0.5 py-1">
+          <span className="text-base leading-none">⏻</span>
+          <span className="text-[9px] text-text-secondary">Energia</span>
+        </button>
       </nav>
       <main className="order-1 md:order-2 flex-1 overflow-y-auto min-h-0 min-w-0">
         {children}

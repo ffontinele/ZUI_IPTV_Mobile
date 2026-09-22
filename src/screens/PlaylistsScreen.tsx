@@ -26,11 +26,13 @@ export function PlaylistsScreen() {
   }, [editing]);
 
   const openEdit = (src: any) => {
-    setEditing(src);
+    const cfg = src.config ?? {};
+    const urlKey = ['url', 'host', 'server', 'baseUrl', 'serverUrl'].find((k) => typeof cfg[k] === 'string' && cfg[k]) ?? 'url';
+    setEditing({ ...src, __urlKey: urlKey });
     setForm({
-      url: src.config?.url ?? '',
-      username: src.config?.username ?? '',
-      password: src.config?.password ?? '',
+      url: cfg[urlKey] ?? src.url ?? '',
+      username: cfg.username ?? '',
+      password: cfg.password ?? '',
       name: src.name ?? '',
     });
   };
@@ -40,7 +42,7 @@ export function PlaylistsScreen() {
     const st = useSourceStore.getState() as any;
     const patch = {
       name: form.name || editing.name,
-      config: { ...(editing.config ?? {}), url: form.url, username: form.username, password: form.password },
+      config: { ...(editing.config ?? {}), [editing.__urlKey ?? 'url']: form.url, url: form.url, username: form.username, password: form.password },
     };
     if (typeof st.updateSource === 'function') st.updateSource(editing.id, patch);
     else if (typeof st.editSource === 'function') st.editSource(editing.id, patch);
@@ -122,7 +124,7 @@ export function PlaylistsScreen() {
 
               {src.type === 'xtream' && (
                 <div className="rounded-lg bg-bg-hover/50 px-3 py-2 flex flex-col gap-1">
-                  <p className="text-[11px] text-text-muted truncate">{src.config?.url}</p>
+                  <p className="text-[11px] text-text-muted truncate">{(src.config?.url ?? src.config?.host ?? src.config?.server ?? '')}</p>
                   <p className="text-[11px] text-text-secondary">
                     👤 {src.config?.username ?? '—'} &nbsp;·&nbsp; 🔑 {showPass[src.id] ? (src.config?.password ?? '—') : '••••••••'}
                     <button onClick={() => setShowPass((m) => ({ ...m, [src.id]: !m[src.id] }))} className="ml-2 px-1.5 py-0.5 rounded bg-white/10 text-[11px]">

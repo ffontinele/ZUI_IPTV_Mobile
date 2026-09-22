@@ -5,6 +5,7 @@ import { usePlaylistStore } from '@/state/playlistStore';
 import { useSourceStore } from '@/state/sourceStore';
 import { useMoviesStore } from '@/state/moviesStore';
 import { useSeriesStore } from '@/state/seriesStore';
+import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
 import { usePlayerStore } from '@/state/playerStore';
 
 function greeting(date: Date): string {
@@ -27,6 +28,7 @@ export function HomeScreen() {
   const allSeries = useSeriesStore((s) => s.allSeries);
   const currentEpisode = useSeriesStore((s) => s.currentEpisode);
   const openSeriesDetails = useSeriesStore((s) => s.openSeriesDetails);
+  const detailsSeriesId = useSeriesStore((s) => s.detailsSeriesId);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
@@ -153,6 +155,8 @@ export function HomeScreen() {
           </button>
         ))}
       </div>
+
+      {detailsSeriesId && <EpisodeBrowserModal />}
     </div>
   );
 }

@@ -1,22 +1,14 @@
-// RecentsScreen — pasta unica de "assistidos recentemente / continuar" das 3 categorias
-import { useEffect, useMemo, useState } from 'react';
-import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
+// RecentsScreen v2 — visual identico ao da Home (secoes com fileiras horizontais)
+import { useEffect, useMemo } from 'react';
 import { usePlaylistStore } from '@/state/playlistStore';
 import { useMoviesStore } from '@/state/moviesStore';
 import { useSeriesStore } from '@/state/seriesStore';
 import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
-
-type Tab = 'channels' | 'movies' | 'series';
+import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
 
 export function RecentsScreen() {
-  const [tab, setTab] = useState<Tab>('channels');
-
-  useEffect(() => {
-    if (useMoviesStore.getState().status === 'idle') void useMoviesStore.getState().loadVodData();
-    if (useSeriesStore.getState().status === 'idle') void useSeriesStore.getState().loadSeriesData();
-  }, []);
-
+  const navigate = useUIStore((s) => s.navigate);
   const channelsBySource = usePlaylistStore((s) => s.channelsBySource);
   const recentIds = usePlaylistStore((s) => s.recentIds);
   const allMovies = useMoviesStore((s) => s.allMovies);
@@ -26,6 +18,11 @@ export function RecentsScreen() {
   const currentEpisode = useSeriesStore((s) => s.currentEpisode);
   const openSeriesDetails = useSeriesStore((s) => s.openSeriesDetails);
   const detailsSeriesId = useSeriesStore((s) => s.detailsSeriesId);
+
+  useEffect(() => {
+    if (useMoviesStore.getState().status === 'idle') void useMoviesStore.getState().loadVodData();
+    if (useSeriesStore.getState().status === 'idle') void useSeriesStore.getState().loadSeriesData();
+  }, []);
 
   const recentChannels = useMemo(() => {
     const all = Object.values(channelsBySource).flat();
@@ -51,53 +48,49 @@ export function RecentsScreen() {
     usePlaylistStore.getState().selectChannel(ch.id);
     usePlaylistStore.getState().addToRecent(ch.id);
     usePlayerStore.getState().setSource({ id: ch.id, name: ch.name, url: ch.streamUrl });
-    useUIStore.getState().navigate('player');
+    navigate('player');
   };
 
-  const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: 'channels', label: '📺 Canais', count: recentChannels.length },
-    { id: 'movies', label: '🎬 Filmes', count: resumeMovies.length },
-    { id: 'series', label: '📼 Séries', count: resumeSeries.length },
-  ];
+  const empty = recentChannels.length === 0 && resumeMovies.length === 0 && resumeSeries.length === 0;
 
   return (
-    <div className="flex flex-col h-full bg-bg-base">
-      <div className="sticky top-0 z-10 bg-bg-elevated border-b border-border-subtle p-3 flex flex-col gap-2">
-        <h1 className="text-lg font-bold text-white px-1">🕘 Recentes / Continuar</h1>
-        <div className="flex gap-2">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap ${tab === t.id ? 'bg-[#E8B567] text-[#161006] font-semibold' : 'bg-bg-hover text-text-primary'}`}
-            >
-              {t.label} · {t.count}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="h-full overflow-y-auto p-4 pb-6 flex flex-col gap-5 max-w-3xl mx-auto">
+      <header>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-[#E8B567] mb-1">Sua biblioteca</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">Recentes / Continuar</h1>
+        <p className="text-xs text-text-secondary mt-1">Tudo o que você assistiu recentemente, em um só lugar</p>
+      </header>
 
-      <div className="flex-1 overflow-y-auto">
-        {tab === 'channels' && (
-          recentChannels.length === 0 ? <Empty msg="Nenhum canal assistido recentemente." /> :
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3">
+      {empty && (
+        <div className="rounded-xl bg-bg-elevated border border-border-subtle p-6 text-center text-sm text-text-muted">
+          Nada por aqui ainda. Assista algo em TV, Filmes ou Séries e aparecerá nesta tela.
+        </div>
+      )}
+
+      {recentChannels.length > 0 && (
+        <section>
+          <h2 className="text-xs uppercase tracking-wider text-text-muted mb-2">📺 Últimos canais</h2>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {recentChannels.map((ch) => (
-              <button key={ch.id} onClick={() => playChannel(ch)} className="rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
+              <button key={ch.id} onClick={() => playChannel(ch)} className="shrink-0 w-36 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
                 <div className="aspect-video bg-bg-hover flex items-center justify-center p-3">
-                  {ch.logo ? <img src={ch.logo} alt="" className="w-full h-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <span className="text-3xl">📺</span>}
+                  {ch.logo ? <img src={ch.logo} alt="" className="w-full h-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <span className="text-2xl">📺</span>}
                 </div>
                 <p className="p-1.5 text-[10px] text-text-primary truncate">{ch.name}</p>
               </button>
             ))}
           </div>
-        )}
-        {tab === 'movies' && (
-          resumeMovies.length === 0 ? <Empty msg="Nenhum filme em andamento. Assista um filme e ele aparecerá aqui." /> :
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3">
+        </section>
+      )}
+
+      {resumeMovies.length > 0 && (
+        <section>
+          <h2 className="text-xs uppercase tracking-wider text-text-muted mb-2">🎬 Continuar assistindo</h2>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {resumeMovies.map((m) => (
-              <button key={m.id} onClick={() => playMovie(m.id)} className="rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
+              <button key={m.id} onClick={() => playMovie(m.id)} className="shrink-0 w-28 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
                 <div className="aspect-[2/3] bg-bg-hover">
-                  {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">🎬</div>}
+                  {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>}
                 </div>
                 <div className="p-1.5">
                   <p className="text-[10px] text-text-primary truncate">{m.title}</p>
@@ -106,14 +99,17 @@ export function RecentsScreen() {
               </button>
             ))}
           </div>
-        )}
-        {tab === 'series' && (
-          resumeSeries.length === 0 ? <Empty msg="Nenhuma série em andamento." /> :
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3">
+        </section>
+      )}
+
+      {resumeSeries.length > 0 && (
+        <section>
+          <h2 className="text-xs uppercase tracking-wider text-text-muted mb-2">📼 Continuar séries</h2>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {resumeSeries.map((s) => (
-              <button key={s.id} onClick={() => void openSeriesDetails(s.id)} className="rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
+              <button key={s.id} onClick={() => void openSeriesDetails(s.id)} className="shrink-0 w-28 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
                 <div className="aspect-[2/3] bg-bg-hover">
-                  {s.posterUrl ? <img src={s.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">📼</div>}
+                  {s.posterUrl ? <img src={s.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl">📼</div>}
                 </div>
                 <p className="p-1.5 text-[10px] text-text-primary truncate">{s.title}</p>
                 {currentEpisode[s.id] && (
@@ -122,14 +118,10 @@ export function RecentsScreen() {
               </button>
             ))}
           </div>
-        )}
-      </div>
+        </section>
+      )}
 
       {detailsSeriesId && <EpisodeBrowserModal />}
     </div>
   );
-}
-
-function Empty({ msg }: { msg: string }) {
-  return <div className="flex items-center justify-center h-40 text-text-muted text-sm px-6 text-center">{msg}</div>;
 }
