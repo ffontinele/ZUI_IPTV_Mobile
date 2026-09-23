@@ -96,8 +96,46 @@ export function startDownload(item: DownloadItem) {
   st.items.filter((i) => i.url === item.url && i.id !== item.id).forEach((i) => st.remove(i.id));
   const existing = st.items.find((i) => i.id === item.id);
   const from = !existing || existing.status === 'error' || existing.status === 'done' ? 0 : (existing.bytesDone ?? 0);
-  st.add({ ...item, status: 'downloading', progress: 0, bytesDone: from, bytesTotal: undefined });
-  void runLoop(item.id, item.url, item.fileName, from);
+  const safeName = (item.fileName || `${item.id}.mp4`).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 120);
+  st.add({ ...item, fileName: safeName, status: 'downloading', progress: 0, bytesDone: from, bytesTotal: undefined });
+  void runSafe(item.id, item.url, safeName, from);
+}
+
+// Sonda 1 byte: servidor suporta Range? Se sim, blocos; se nao, download direto
+async function runSafe(id: string, url: string, fileName: string, from: number) {
+  const holder = { xhr: null as XMLHttpRequest | null, alive: true };
+  controllers.set(id, holder);
+  try {
+    const probe = await chunk(url, 0, 0, holder);
+    if (!holder.alive) return;
+    if (probe.status === 206) {
+      controllers.delete(id);
+      await runLoop(id, url, fileName, from);
+    } else {
+      // Sem Range: baixa inteiro em blob e grava de uma vez
+      const data = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        holder.xhr = xhr;
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = () => resolve((xhr.response as ArrayBuffer) ?? new ArrayBuffer(0));
+        xhr.onerror = () => reject(new Error('Falha de rede'));
+        xhr.onabort = () => reject(new Error('pause'));
+        xhr.send();
+      });
+      if (!holder.alive) return;
+      const b64 = abToB64(data);
+      await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.Documents, recursive: true });
+      const uri = (await Filesystem.getUri({ path: fileName, directory: Directory.Documents })).uri;
+      useDownloadsStore.getState().update(id, { status: 'done', progress: 100, bytesDone: data.byteLength, bytesTotal: data.byteLength, filePath: uri });
+      controllers.delete(id);
+      vib(80);
+    }
+  } catch (err) {
+    controllers.delete(id);
+    useDownloadsStore.getState().update(id, { status: 'error', error: String((err as any)?.message ?? err) });
+    vib(60);
+  }
 }
 
 export function pauseDownload(id: string) {

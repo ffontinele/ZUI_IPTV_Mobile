@@ -48,8 +48,7 @@ export function PlaylistsScreen() {
     else if (typeof st.editSource === 'function') st.editSource(editing.id, patch);
     else useSourceStore.setState({ sources: st.sources.map((x: any) => (x.id === editing.id ? { ...x, ...patch } : x)) });
     setEditing(null);
-    showToast('Lista atualizada');
-    void syncSource(editing.id);
+    void syncSource(editing.id).then((r: any) => showToast(r?.ok ? 'Edição salva e lista atualizada' : 'Edição salva; erro ao atualizar: ' + (r?.error ?? ''))).catch(() => showToast('Edição salva'));
   };
 
   const toggleEnabled = (id: string) => {
@@ -147,7 +146,7 @@ export function PlaylistsScreen() {
                 <button onClick={() => toggleEnabled(src.id)} className={`px-3.5 py-2 rounded-full text-xs font-semibold ${src.enabled ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-primary'}`}>
                   {src.enabled ? '✓ Ativa' : 'Ativar'}
                 </button>
-                <button onClick={() => void syncSource(src.id)} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">
+                <button onClick={() => { showToast('Atualizando lista...'); void syncSource(src.id).then((r: any) => { if (r?.ok) { try { usePlaylistStore.getState().setChannelsForSource(src.id, r.channels ?? []); } catch { /* ignore */ } showToast('Lista atualizada: ' + (r.channelCount ?? (r.channels ?? []).length) + ' canais'); } else { showToast('Erro ao atualizar: ' + (r?.error ?? 'falha')); } }).catch((e: any) => showToast('Erro: ' + String(e?.message ?? e))); }} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">
                   ⟳ Atualizar
                 </button>
                 <button onClick={() => openEdit(src)} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">

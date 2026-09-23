@@ -34,10 +34,11 @@ export function DownloadsScreen() {
   };
 
   const copy = (it: any) => {
-    const p = it.filePath ?? it.fileName ?? '';
+    const p = it.filePath;
+    const txt = p || it.url;
     try {
-      (navigator as any).clipboard?.writeText(p);
-      showToast(p ? 'Caminho do arquivo copiado' : 'Arquivo ainda não baixado');
+      (navigator as any).clipboard?.writeText(txt);
+      showToast(p ? 'Caminho do arquivo copiado' : 'Link do vídeo copiado');
     } catch { showToast('Não foi possível copiar'); }
   };
 
@@ -80,6 +81,7 @@ export function DownloadsScreen() {
               />
             </div>
             <p className="text-[11px] text-text-primary">{it.progress < 0 ? 'baixando… ' + (it.bytesDone ? (it.bytesDone/1048576).toFixed(1)+' MB' : '') : Math.round(it.progress) + '%'}</p>
+            {it.status === 'error' && it.error && (<p className="text-[10px] text-red-300 mt-0.5">Erro: {it.error}</p>)}
 
             {it.status === 'done' && it.fileName && (
               <p className="text-[10px] text-text-muted truncate">📁 Documents/{it.fileName}</p>

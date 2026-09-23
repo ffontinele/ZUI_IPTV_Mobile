@@ -21,7 +21,7 @@ export function MobileShell({ children }: MobileShellProps) {
     const h = (e: PointerEvent) => {
       const t = e.target as Element;
       if (t && t.closest && t.closest('button')) {
-        try { (navigator as any).vibrate?.(12); } catch { /* ignore */ }
+        try { (navigator as any).vibrate?.(30); } catch { /* ignore */ }
       }
     };
     document.addEventListener('pointerdown', h, true);
