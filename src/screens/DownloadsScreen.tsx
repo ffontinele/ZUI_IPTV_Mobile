@@ -5,7 +5,7 @@ import { useDownloadsStore } from '@/state/downloadsStore';
 import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { useToast } from '@/components/ui/Toast';
-import { pauseDownload, resumeDownload, cancelDownload } from '@/services/downloadRunner';
+import { pauseDownload, resumeDownload, cancelDownload, resolvePath } from '@/services/downloadRunner';
 
 const STATUS_LABEL: Record<string, string> = {
   queued: 'Na fila',
@@ -33,13 +33,13 @@ export function DownloadsScreen() {
     navigate('player');
   };
 
-  const copy = (it: any) => {
-    const p = it.filePath;
-    const txt = p || it.url;
-    try {
-      (navigator as any).clipboard?.writeText(txt);
-      showToast(p ? 'Caminho do arquivo copiado' : 'Link do vídeo copiado');
-    } catch { showToast('Não foi possível copiar'); }
+  const copy = async (it: any) => {
+    if (it.status === 'done' && it.fileName) {
+      const real = await resolvePath(it.fileName);
+      try { (navigator as any).clipboard?.writeText(real || it.filePath || ''); showToast(real ? 'Caminho real copiado' : 'Arquivo não encontrado'); } catch { showToast('Não foi possível copiar'); }
+    } else {
+      try { (navigator as any).clipboard?.writeText(it.url); showToast('Link do vídeo copiado'); } catch { showToast('Não foi possível copiar'); }
+    }
   };
 
   return (
