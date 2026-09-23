@@ -5,7 +5,7 @@ import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { useToast } from '@/components/ui/Toast';
 import { Clipboard } from '@capacitor/clipboard';
-import { pauseDownload, resumeDownload, cancelDownload, resolvePath } from '@/services/downloadRunner';
+import { pauseDownload, resumeDownload, cancelDownload } from '@/services/downloadRunner';
 
 const STATUS_LABEL: Record<string, string> = {
   queued: 'Na fila',
