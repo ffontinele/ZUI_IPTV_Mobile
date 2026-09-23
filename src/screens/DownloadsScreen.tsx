@@ -5,7 +5,7 @@ import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { useToast } from '@/components/ui/Toast';
 import { Clipboard } from '@capacitor/clipboard';
-import { pauseDownload, resumeDownload, cancelDownload } from '@/services/downloadRunner';
+import { pauseDownload, resumeDownload, cancelDownload, startDownload } from '@/services/downloadRunner';
 
 const STATUS_LABEL: Record<string, string> = {
   queued: 'Na fila',
@@ -117,8 +117,11 @@ export function DownloadsScreen() {
               <button onClick={() => watch(it)} disabled={it.status !== 'done'} className={`px-3.5 py-2 rounded-full text-xs font-semibold ${it.status === 'done' ? 'bg-[#E8B567] text-[#161006]' : 'bg-bg-hover text-text-muted'}`}>
                 ▶ Assistir
               </button>
-              {it.status === 'error' ? (
-                <button onClick={() => resumeDownload(it.id)} className="px-3.5 py-2 rounded-full bg-[#E8B567] text-[#161006] text-xs font-semibold">↻ Tentar novamente</button>
+              {it.status === 'error' || it.status === 'queued' ? (
+                <>
+                  <button onClick={() => resumeDownload(it.id)} className="px-3.5 py-2 rounded-full bg-[#E8B567] text-[#161006] text-xs font-semibold">↻ Retomar</button>
+                  <button onClick={() => { cancelDownload(it.id).then(() => startDownload(it)); }} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">↺ Reiniciar</button>
+                </>
               ) : it.status === 'downloading' ? (
                 <button onClick={() => pauseDownload(it.id)} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">⏸ Pausar</button>
               ) : it.status === 'queued' ? (
