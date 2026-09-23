@@ -104,6 +104,20 @@ export default function App() {
 
   // BACK do Android (main.tsx converte backButton em keyCode 461)
   useEffect(() => {
+    // autocura: lista ativada com 0 canais (cache corrompido) ressincroniza ao abrir
+    const t = setTimeout(() => {
+      try {
+        const srcs = useSourceStore.getState().sources.filter((s: any) => s.enabled && s.syncedAt);
+        const cbs = usePlaylistStore.getState().channelsBySource;
+        srcs.forEach((s: any) => {
+          if (!(cbs[s.id] || []).length) void useSourceStore.getState().syncSource(s.id);
+        });
+      } catch { /* ignore */ }
+    }, 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
     let lastBack = 0;
     const onKey = (e: KeyboardEvent) => {
       if (e.keyCode !== 461) return;

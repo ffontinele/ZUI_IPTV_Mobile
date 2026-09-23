@@ -55,7 +55,7 @@ export function DownloadProgressBar() {
         </div>
       </div>
       <div className="flex items-center gap-1.5 p-3 pt-2">
-        <span className="flex-1 text-[10px] text-text-muted tabular-nums">{mb(item.bytesDone)}{item.bytesTotal ? ` / ${mb(item.bytesTotal)}` : ''}</span>
+        <span className="flex-1 text-[10px] text-text-primary tabular-nums">{mb(item.bytesDone)}{item.bytesTotal ? ` / ${mb(item.bytesTotal)}` : ''}</span>
         {item.status === 'downloading' ? (
           <button onClick={() => pauseDownload(item.id)} className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-semibold text-text-primary">⏸</button>
         ) : (

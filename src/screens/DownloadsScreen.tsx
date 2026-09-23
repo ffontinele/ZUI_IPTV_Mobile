@@ -79,7 +79,7 @@ export function DownloadsScreen() {
                 style={{ width: `${Math.min(100, it.progress)}%` }}
               />
             </div>
-            <p className="text-[11px] text-text-muted">{Math.round(it.progress)}%</p>
+            <p className="text-[11px] text-text-primary">{it.progress < 0 ? 'baixando… ' + (it.bytesDone ? (it.bytesDone/1048576).toFixed(1)+' MB' : '') : Math.round(it.progress) + '%'}</p>
 
             <div className="flex flex-wrap gap-2">
               <button

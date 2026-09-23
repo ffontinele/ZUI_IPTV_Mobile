@@ -1,24 +1,17 @@
-// downloadRunner v2 — sem notificacao externa, resposta robusta, retentativa limpa
+// downloadRunner v3 — download em pedacos de 6MB (memoria segura), 1 clique = 1 download
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useDownloadsStore } from '@/state/downloadsStore';
 import type { DownloadItem } from '@/state/downloadsStore';
 
-const xhrs = new Map<string, XMLHttpRequest>();
+const CHUNK = 6 * 1024 * 1024;
+const controllers = new Map<string, { xhr: XMLHttpRequest | null; alive: boolean }>();
 const vib = (ms = 30) => { try { (navigator as any).vibrate?.(ms); } catch { /* ignore */ } };
+let lastStore = 0;
 
-// Interrupcoes de sessao anterior: downloading -> queued (retomavel)
+// Sessao anterior interrompida: downloading -> queued
 {
   const st = useDownloadsStore.getState();
   st.items.filter((i) => i.status === 'downloading').forEach((i) => st.update(i.id, { status: 'queued' }));
-}
-
-async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((res, rej) => {
-    const fr = new FileReader();
-    fr.onload = () => res(String(fr.result).split(',')[1]);
-    fr.onerror = rej;
-    fr.readAsDataURL(blob);
-  });
 }
 
 function abToB64(buf: ArrayBuffer): string {
@@ -31,81 +24,101 @@ function abToB64(buf: ArrayBuffer): string {
   return btoa(bin);
 }
 
-export function isRunning(id: string) { return xhrs.has(id); }
+export function isRunning(id: string) { return controllers.get(id)?.alive === true; }
 
-function run(id: string, url: string, from: number, fileName: string) {
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.responseType = 'arraybuffer';
-  if (from > 0) xhr.setRequestHeader('Range', `bytes=${from}-`);
-  xhr.onprogress = (e) => {
-    const done = from + e.loaded;
-    const cl = Number(xhr.getResponseHeader?.('Content-Length') ?? 0) || 0;
-    const total = e.lengthComputable ? from + e.total : (cl ? from + cl : 0);
-    useDownloadsStore.getState().update(id, {
-      status: 'downloading',
-      bytesDone: done,
-      bytesTotal: total || undefined,
-      progress: total ? Math.min(99, (done / total) * 100) : -1,
-    });
-  };
-  xhr.onload = async () => {
-    xhrs.delete(id);
-    try {
-      const resp: any = xhr.response;
-      let b64: string;
-      if (resp instanceof ArrayBuffer && resp.byteLength > 0) b64 = abToB64(resp);
-      else if (resp instanceof Blob && resp.size > 0) b64 = await blobToBase64(resp);
-      else if (typeof resp === 'string' && resp.length > 0) b64 = resp.includes(',') ? resp.split(',')[1] : resp;
-      else throw new Error('Resposta vazia do servidor');
-      const serverIgnoredRange = from > 0 && xhr.status === 200;
-      if (from > 0 && !serverIgnoredRange) {
-        await Filesystem.appendFile({ path: fileName, data: b64, directory: Directory.Documents });
-      } else {
+function chunk(url: string, from: number, to: number, holder: { xhr: XMLHttpRequest | null; alive: boolean }) {
+  return new Promise<{ status: number; data: ArrayBuffer; total: number }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    holder.xhr = xhr;
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.setRequestHeader('Range', `bytes=${from}-${to}`);
+    xhr.onload = () => {
+      let total = 0;
+      const cr = xhr.getResponseHeader?.('Content-Range');
+      if (cr) { const m = cr.match(/\/(\d+)$/); if (m) total = Number(m[1]); }
+      if (!total) total = Number(xhr.getResponseHeader?.('Content-Length') ?? 0) || 0;
+      resolve({ status: xhr.status, data: (xhr.response as ArrayBuffer) ?? new ArrayBuffer(0), total });
+    };
+    xhr.onerror = () => reject(new Error('Falha de rede'));
+    xhr.onabort = () => reject(new Error('pause'));
+    xhr.send();
+  });
+}
+
+async function runLoop(id: string, url: string, fileName: string, startOffset: number) {
+  const holder = { xhr: null as XMLHttpRequest | null, alive: true };
+  controllers.set(id, holder);
+  let offset = startOffset;
+  let total = 0;
+  try {
+    while (holder.alive) {
+      const res = await chunk(url, offset, offset + CHUNK - 1, holder);
+      if (res.status === 416 || res.data.byteLength === 0) break;
+      const b64 = abToB64(res.data);
+      if (offset === 0) {
         await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.Documents, recursive: true });
+      } else {
+        await Filesystem.appendFile({ path: fileName, data: b64, directory: Directory.Documents });
       }
-      const uri = (await Filesystem.getUri({ path: fileName, directory: Directory.Documents })).uri;
-      useDownloadsStore.getState().update(id, { status: 'done', progress: 100, filePath: uri });
-      vib(80);
-    } catch (err) {
-      useDownloadsStore.getState().update(id, { status: 'error', error: String(err) });
-      vib(60);
+      if (res.total) total = res.total;
+      if (res.status === 200) { offset = res.data.byteLength; total = total || offset; break; }
+      offset += res.data.byteLength;
+      if (total && offset >= total) break;
+      const now = Date.now();
+      if (now - lastStore > 500) {
+        lastStore = now;
+        useDownloadsStore.getState().update(id, {
+          status: 'downloading',
+          bytesDone: offset,
+          bytesTotal: total || undefined,
+          progress: total ? Math.min(99, (offset / total) * 100) : -1,
+        });
+      }
     }
-  };
-  xhr.onerror = () => { xhrs.delete(id); useDownloadsStore.getState().update(id, { status: 'error', error: 'Falha de rede' }); };
-  xhr.onabort = () => { xhrs.delete(id); };
-  xhrs.set(id, xhr);
-  xhr.send();
+    if (!holder.alive) return;
+    const uri = (await Filesystem.getUri({ path: fileName, directory: Directory.Documents })).uri;
+    useDownloadsStore.getState().update(id, { status: 'done', progress: 100, bytesDone: offset, bytesTotal: total || offset, filePath: uri });
+    vib(80);
+  } catch (err) {
+    if (!holder.alive) return;
+    useDownloadsStore.getState().update(id, { status: 'error', error: String((err as any)?.message ?? err) });
+    vib(60);
+  } finally {
+    controllers.delete(id);
+  }
 }
 
 export function startDownload(item: DownloadItem) {
+  vib();
+  if (isRunning(item.id)) return; // cliques repetidos ignorados
   const st = useDownloadsStore.getState();
   st.items.filter((i) => i.url === item.url && i.id !== item.id).forEach((i) => st.remove(i.id));
   const existing = st.items.find((i) => i.id === item.id);
   const from = !existing || existing.status === 'error' || existing.status === 'done' ? 0 : (existing.bytesDone ?? 0);
-  st.add({ ...item, status: 'downloading', progress: 0, bytesDone: from, bytesTotal: undefined, error: undefined });
-  vib();
-  run(item.id, item.url, from, item.fileName);
+  st.add({ ...item, status: 'downloading', progress: 0, bytesDone: from, bytesTotal: undefined });
+  void runLoop(item.id, item.url, item.fileName, from);
 }
 
 export function pauseDownload(id: string) {
-  const x = xhrs.get(id);
-  if (x) { x.abort(); xhrs.delete(id); }
+  const c = controllers.get(id);
+  if (c) { c.alive = false; c.xhr?.abort(); controllers.delete(id); }
   useDownloadsStore.getState().update(id, { status: 'queued' });
   vib();
 }
 
 export function resumeDownload(id: string) {
+  if (isRunning(id)) return;
   const item = useDownloadsStore.getState().items.find((i) => i.id === id);
   if (!item) return;
-  useDownloadsStore.getState().update(id, { status: 'downloading', error: undefined });
+  useDownloadsStore.getState().update(id, { status: 'downloading' });
   vib();
-  run(id, item.url, item.bytesDone ?? 0, item.fileName);
+  void runLoop(id, item.url, item.fileName, item.bytesDone ?? 0);
 }
 
 export function cancelDownload(id: string) {
-  const x = xhrs.get(id);
-  if (x) { x.abort(); xhrs.delete(id); }
+  const c = controllers.get(id);
+  if (c) { c.alive = false; c.xhr?.abort(); controllers.delete(id); }
   useDownloadsStore.getState().remove(id);
   vib();
 }
