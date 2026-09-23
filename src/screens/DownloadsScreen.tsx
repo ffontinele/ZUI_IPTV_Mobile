@@ -120,7 +120,7 @@ export function DownloadsScreen() {
               {it.status === 'error' || it.status === 'queued' ? (
                 <>
                   <button onClick={() => resumeDownload(it.id)} className="px-3.5 py-2 rounded-full bg-[#E8B567] text-[#161006] text-xs font-semibold">↻ Retomar</button>
-                  <button onClick={() => { cancelDownload(it.id).then(() => startDownload(it)); }} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">↺ Reiniciar</button>
+                  <button onClick={() => { void cancelDownload(it.id).then(() => startDownload(it)); }} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">↺ Reiniciar</button>
                 </>
               ) : it.status === 'downloading' ? (
                 <button onClick={() => pauseDownload(it.id)} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">⏸ Pausar</button>
