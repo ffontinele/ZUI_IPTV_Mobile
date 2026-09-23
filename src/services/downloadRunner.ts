@@ -1,4 +1,4 @@
-// downloadRunner — com RESUME real via Range request + append
+// downloadRunner v8 — hibrido: downloadFile rapido + XHR fallback + polling progresso
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useDownloadsStore } from '@/state/downloadsStore';
@@ -7,7 +7,8 @@ import { useToast } from '@/components/ui/Toast';
 
 const vib = (ms = 30) => { try { (navigator as any).vibrate?.(ms); } catch {} };
 const running = new Set<string>();
-let lastProg = 0;
+const paused = new Set<string>();
+const pollers = new Map<string, number>();
 
 function safeName(s: string): string {
   return s.replace(/[^a-z0-9._-]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase().slice(0, 120) || 'download.mp4';
@@ -32,7 +33,6 @@ function abToB64(buf: ArrayBuffer): string {
   return btoa(bin);
 }
 
-// Tamanho atual do arquivo parcial (0 se nao existe)
 async function partialSize(fileName: string): Promise<number> {
   try {
     const st = await Filesystem.stat({ path: fileName, directory: Directory.Documents });
@@ -40,27 +40,41 @@ async function partialSize(fileName: string): Promise<number> {
   } catch { return 0; }
 }
 
-// Download inicial (do zero) — Filesystem.downloadFile nativo (rapido)
+// Polling de progresso (fallback quando listener nao dispara)
+function startPolling(id: string, fileName: string, totalHint?: number) {
+  stopPolling(id);
+  const interval = window.setInterval(async () => {
+    if (!running.has(id) || paused.has(id)) { stopPolling(id); return; }
+    const size = await partialSize(fileName);
+    if (size > 0) {
+      const total = totalHint || 0;
+      const progress = total ? Math.min(99, (size / total) * 100) : -1;
+      useDownloadsStore.getState().update(id, {
+        status: 'downloading', bytesDone: size, bytesTotal: total || undefined, progress,
+      });
+    }
+  }, 2000);
+  pollers.set(id, interval);
+}
+
+function stopPolling(id: string) {
+  const int = pollers.get(id);
+  if (int) { clearInterval(int); pollers.delete(id); }
+}
+
+// Download fresco via API nativa (rapido)
 async function runFresh(id: string, url: string, name: string) {
   const showToast = useToast.getState().show;
-  let listener: any = null;
+  startPolling(id, name);
   try {
-    listener = await (Filesystem as any).addListener('progress', (data: any) => {
-      if (data && data.contentLength > 0 && (!data.url || data.url === url)) {
-        const now = Date.now();
-        if (now - lastProg < 500) return;
-        lastProg = now;
-        const progress = Math.min(99, Math.round((data.bytes / data.contentLength) * 100));
-        useDownloadsStore.getState().update(id, {
-          progress, status: 'downloading',
-          bytesDone: data.bytes, bytesTotal: data.contentLength,
-        });
-      }
-    });
     const res = await Filesystem.downloadFile({
       url, path: name, directory: Directory.Documents, recursive: true, progress: true,
     });
-    if (listener) await listener.remove();
+    stopPolling(id);
+    if (paused.has(id)) {
+      useDownloadsStore.getState().update(id, { status: 'queued' });
+      return;
+    }
     useDownloadsStore.getState().update(id, {
       progress: 100, status: 'done', filePath: res.path,
       bytesDone: undefined, bytesTotal: undefined,
@@ -68,7 +82,11 @@ async function runFresh(id: string, url: string, name: string) {
     showToast('✅ Download concluído');
     vib(80);
   } catch (err) {
-    if (listener) await listener.remove();
+    stopPolling(id);
+    if (paused.has(id)) {
+      useDownloadsStore.getState().update(id, { status: 'queued' });
+      return;
+    }
     const msg = String((err as Error)?.message || err);
     useDownloadsStore.getState().update(id, { status: 'error', error: msg });
     showToast('❌ Falha: ' + msg);
@@ -76,59 +94,58 @@ async function runFresh(id: string, url: string, name: string) {
   }
 }
 
-// Resume (retoma de onde parou) — Range request + append chunks
+// Resume via XHR puro (sem CapacitorHttp) + append chunks
 async function runResume(id: string, url: string, name: string, fromBytes: number) {
   const showToast = useToast.getState().show;
-  const CHUNK = 4 * 1024 * 1024; // 4 MB por append
+  const CHUNK = 4 * 1024 * 1024;
   let offset = fromBytes;
   showToast(`↻ Retomando de ${(fromBytes / 1048576).toFixed(0)} MB...`);
+  startPolling(id, name);
   try {
-    // Primeiro: descobre tamanho total
-    const headRes = await new Promise<{ total: number; supportsRange: boolean }>((resolve) => {
+    const headRes = await new Promise<{ total: number }>((resolve) => {
       const xhr = new XMLHttpRequest();
       xhr.open('HEAD', url, true);
       xhr.onload = () => {
         const cl = Number(xhr.getResponseHeader('Content-Length') || 0) || 0;
-        const ar = xhr.getResponseHeader('Accept-Ranges') || '';
-        resolve({ total: cl, supportsRange: ar.toLowerCase() === 'bytes' || cl > 0 });
+        resolve({ total: cl });
       };
-      xhr.onerror = () => resolve({ total: 0, supportsRange: false });
+      xhr.onerror = () => resolve({ total: 0 });
       xhr.send();
     });
     if (headRes.total && offset >= headRes.total) {
-      // ja tinha terminado
+      stopPolling(id);
       useDownloadsStore.getState().update(id, { progress: 100, status: 'done', bytesDone: headRes.total, bytesTotal: headRes.total });
       showToast('✅ Já estava concluído');
       vib(80);
       return;
     }
-    // Baixa em chunks de 4MB via Range e faz append
-    let last = Date.now();
-    while (running.has(id)) {
+    while (running.has(id) && !paused.has(id)) {
       const to = headRes.total ? Math.min(offset + CHUNK - 1, headRes.total - 1) : offset + CHUNK - 1;
       const chunk = await new Promise<ArrayBuffer>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
         xhr.setRequestHeader('Range', `bytes=${offset}-${to}`);
-        xhr.onload = () => resolve((xhr.response as ArrayBuffer) ?? new ArrayBuffer(0));
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve((xhr.response as ArrayBuffer) ?? new ArrayBuffer(0));
+          } else {
+            reject(new Error(`HTTP ${xhr.status}`));
+          }
+        };
         xhr.onerror = () => reject(new Error('Falha de rede'));
         xhr.send();
       });
-      if (!running.has(id)) return;
+      if (paused.has(id) || !running.has(id)) { stopPolling(id); return; }
       const b64 = abToB64(chunk);
       await Filesystem.appendFile({ path: name, data: b64, directory: Directory.Documents });
       offset += chunk.byteLength;
-      const now = Date.now();
-      if (now - last > 400) {
-        last = now;
-        const total = headRes.total || 0;
-        useDownloadsStore.getState().update(id, {
-          status: 'downloading', bytesDone: offset, bytesTotal: total || undefined,
-          progress: total ? Math.min(99, (offset / total) * 100) : -1,
-        });
-      }
       if (chunk.byteLength < CHUNK || (headRes.total && offset >= headRes.total)) break;
+    }
+    stopPolling(id);
+    if (paused.has(id)) {
+      useDownloadsStore.getState().update(id, { status: 'queued', bytesDone: offset });
+      return;
     }
     if (!running.has(id)) return;
     const uri = (await Filesystem.getUri({ path: name, directory: Directory.Documents })).uri;
@@ -139,6 +156,11 @@ async function runResume(id: string, url: string, name: string, fromBytes: numbe
     showToast('✅ Download concluído (retomado)');
     vib(80);
   } catch (err) {
+    stopPolling(id);
+    if (paused.has(id)) {
+      useDownloadsStore.getState().update(id, { status: 'queued', bytesDone: offset });
+      return;
+    }
     const msg = String((err as Error)?.message || err);
     useDownloadsStore.getState().update(id, { status: 'error', error: 'Retomada: ' + msg });
     showToast('❌ Retomada falhou: ' + msg);
@@ -150,6 +172,7 @@ export async function startDownload(item: DownloadItem) {
   vib();
   if (running.has(item.id)) return;
   running.add(item.id);
+  paused.delete(item.id);
   const st = useDownloadsStore.getState();
   st.items.filter((i) => i.url === item.url && i.id !== item.id).forEach((i) => st.remove(i.id));
   const name = safeName(item.fileName || `${item.id}.mp4`);
@@ -169,6 +192,7 @@ export async function resumeDownload(id: string) {
   if (!item) return;
   vib();
   running.add(id);
+  paused.delete(id);
   const st = useDownloadsStore.getState();
   st.update(id, { status: 'downloading', error: undefined });
   const from = await partialSize(item.fileName);
@@ -186,13 +210,17 @@ export async function resumeDownload(id: string) {
 }
 
 export function pauseDownload(id: string) {
+  paused.add(id);
   running.delete(id);
+  stopPolling(id);
   useDownloadsStore.getState().update(id, { status: 'queued' });
   vib();
 }
 
 export async function cancelDownload(id: string) {
+  paused.add(id);
   running.delete(id);
+  stopPolling(id);
   const item = useDownloadsStore.getState().items.find((i) => i.id === id);
   if (item?.fileName && (item.status === 'done' || item.status === 'error' || item.status === 'queued')) {
     try {
