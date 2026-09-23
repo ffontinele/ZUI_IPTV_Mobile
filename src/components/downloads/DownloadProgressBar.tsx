@@ -1,7 +1,7 @@
 // DownloadProgressBar v2 — flutuante ARRASTAVEL + minimizar/restaurar (sem notificacao externa)
 import { useRef, useState } from 'react';
 import { useDownloadsStore } from '@/state/downloadsStore';
-import { pauseDownload, resumeDownload, cancelDownload, isRunning } from '@/services/downloadRunner';
+import { pauseDownload, resumeDownload, cancelDownload, isRunning, speedMap } from '@/services/downloadRunner';
 
 function mb(b?: number) { return b ? `${(b / 1048576).toFixed(1)} MB` : '—'; }
 
@@ -55,7 +55,7 @@ export function DownloadProgressBar() {
         </div>
       </div>
       <div className="flex items-center gap-1.5 p-3 pt-2">
-        <span className="flex-1 text-[10px] text-text-primary tabular-nums">{mb(item.bytesDone)}{item.bytesTotal ? ` / ${mb(item.bytesTotal)}` : ''}</span>
+        <span className="flex-1 text-[10px] text-text-primary tabular-nums">{mb(item.bytesDone)}{item.bytesTotal ? ` / ${mb(item.bytesTotal)}` : ''}{(speedMap.get(item.id) ?? 0) > 0 ? ` · ${((speedMap.get(item.id) ?? 0) / 1048576).toFixed(1)} MB/s` : ''}</span>
         {item.status === 'downloading' ? (
           <button onClick={() => pauseDownload(item.id)} className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-semibold text-text-primary">⏸</button>
         ) : (

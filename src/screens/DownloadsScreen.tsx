@@ -5,7 +5,7 @@ import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { useToast } from '@/components/ui/Toast';
 import { Clipboard } from '@capacitor/clipboard';
-import { pauseDownload, resumeDownload, cancelDownload } from '@/services/downloadRunner';
+import { pauseDownload, resumeDownload, cancelDownload, speedMap } from '@/services/downloadRunner';
 
 const STATUS_LABEL: Record<string, string> = {
   queued: 'Na fila',
@@ -104,7 +104,7 @@ export function DownloadsScreen() {
             </div>
             <p className="text-[11px] text-text-primary tabular-nums">
               {it.status === 'done' ? '100%' : `${Math.max(0, Math.round(it.progress ?? 0))}%`}
-              {it.bytesDone ? ` · ${formatBytes(it.bytesDone)}${it.bytesTotal ? ' / ' + formatBytes(it.bytesTotal) : ''}` : ''}
+              {it.bytesDone ? ` · ${formatBytes(it.bytesDone)}${it.bytesTotal ? ' / ' + formatBytes(it.bytesTotal) : ''}` : ''}{it.status === 'downloading' && (speedMap.get(it.id) ?? 0) > 0 ? ` · ${((speedMap.get(it.id) ?? 0) / 1048576).toFixed(1)} MB/s` : ''}
             </p>
             {it.status === 'error' && it.error && (
               <p className="text-[10px] text-red-300">Erro: {it.error}</p>

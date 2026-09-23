@@ -8,6 +8,8 @@ import { useToast } from '@/components/ui/Toast';
 const vib = (ms = 30) => { try { (navigator as any).vibrate?.(ms); } catch {} };
 const running = new Set<string>();
 const pollers = new Map<string, number>();
+export const speedMap = new Map<string, number>();
+const sizeHist = new Map<string, { t: number; bytes: number }>();
 
 function safeName(s: string): string {
   return s.replace(/[^a-z0-9._-]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase().slice(0, 120) || 'download.mp4';
@@ -32,12 +34,23 @@ async function partialSize(fileName: string): Promise<number> {
 // Polling de progresso a cada 2s (funciona pra filme E serie)
 function startPolling(id: string, fileName: string) {
   stopPolling(id);
+  sizeHist.delete(id);
+  speedMap.delete(id);
   const interval = window.setInterval(async () => {
     if (!running.has(id)) { stopPolling(id); return; }
     const size = await partialSize(fileName);
     if (size > 0) {
+      const now = Date.now();
+      const prev = sizeHist.get(id);
+      if (prev && now - prev.t > 500) {
+        speedMap.set(id, Math.max(0, (size - prev.bytes) / ((now - prev.t) / 1000)));
+      }
+      sizeHist.set(id, { t: now, bytes: size });
+      const total = useDownloadsStore.getState().items.find((i) => i.id === id)?.bytesTotal ?? 0;
       useDownloadsStore.getState().update(id, {
-        status: 'downloading', bytesDone: size, progress: -1, // -1 = indeterminate
+        status: 'downloading',
+        bytesDone: size,
+        progress: total ? Math.min(99, (size / total) * 100) : -1,
       });
     }
   }, 2000);
@@ -65,11 +78,35 @@ export async function startDownload(item: DownloadItem) {
   }
   
   startPolling(item.id, name);
+  // Tamanho total via HEAD (nativo) pra porcentagem voltar
+  void (async () => {
+    try {
+      const total = await new Promise<number>((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('HEAD', item.url, true);
+        xhr.onload = () => resolve(Number(xhr.getResponseHeader('Content-Length') || 0) || 0);
+        xhr.onerror = () => resolve(0);
+        xhr.send();
+      });
+      if (total > 0) useDownloadsStore.getState().update(item.id, { bytesTotal: total });
+    } catch { /* sem total */ }
+  })();
+  // Listener nativo como backup do contentLength
+  let listener: any = null;
+  try {
+    listener = await (Filesystem as any).addListener('progress', (data: any) => {
+      if (data && data.contentLength > 0 && (!data.url || data.url === item.url)) {
+        useDownloadsStore.getState().update(item.id, { bytesTotal: data.contentLength });
+      }
+    });
+  } catch { /* opcional */ }
   try {
     const res = await Filesystem.downloadFile({
       url: item.url, path: name, directory: Directory.Documents, recursive: true, progress: true,
     });
     stopPolling(item.id);
+    if (listener) await listener.remove();
+    speedMap.delete(item.id); sizeHist.delete(item.id);
     useDownloadsStore.getState().update(item.id, {
       progress: 100, status: 'done', filePath: res.path,
       bytesDone: undefined, bytesTotal: undefined,
@@ -78,6 +115,7 @@ export async function startDownload(item: DownloadItem) {
     vib(80);
   } catch (err) {
     stopPolling(item.id);
+    if (listener) await listener.remove();
     const msg = String((err as Error)?.message || err);
     useDownloadsStore.getState().update(item.id, { status: 'error', error: msg });
     useToast.getState().show('❌ Falha: ' + msg);
