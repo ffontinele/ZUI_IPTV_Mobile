@@ -153,6 +153,11 @@ export function SeriesScreen() {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-4xl">📼</div>
                 )}
+                {searchQuery && serie.categoryLabel && (
+                  <span className="absolute bottom-1 left-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] text-[#E8B567] font-semibold truncate text-center backdrop-blur-sm">
+                    {serie.categoryLabel}
+                  </span>
+                )}
               </div>
               <div className="p-2">
                 <p className="text-xs font-medium text-text-[#E8B567] line-clamp-2 leading-tight">{serie.title}</p>
