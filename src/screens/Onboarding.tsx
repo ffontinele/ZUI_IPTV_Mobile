@@ -1,3 +1,4 @@
+import { Clipboard } from '@capacitor/clipboard';
 // Onboarding — 3-adımlı State Machine (tam ekran, modal yok)
 // Step: 'select' → 'cloud' | 'm3u' | 'xtream' → 'syncing'
 // Aynı zamanda PlaylistsScreen'in "empty state" geçişini tetikler.
@@ -412,7 +413,7 @@ function CloudStep({ onBack }: { onBack: () => void; onSuccess?: () => void }) {
           <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">{t('onboarding.qr_hint')}</p>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => { try { (window as any).open(`https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}`, '_blank'); } catch { /* ignore */ } }} className="text-[11px] text-[#E8B567] underline tracking-wide">Abrir no navegador</button>
-            <button type="button" onClick={() => { try { (navigator as any).clipboard?.writeText(`https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}`); } catch { /* ignore */ } }} className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white/70">📋 Copiar link</button>
+            <button type="button" onClick={() => { try { await Clipboard.write({ string: `https://ffontinele.github.io/zui-sync/?id=${shortDeviceId}&key=${deviceKey}` }); } catch { /* ignore */ } }} className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white/70">📋 Copiar link</button>
           </div>
         </div>
 

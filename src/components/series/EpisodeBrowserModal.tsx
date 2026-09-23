@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import { useSeriesStore } from '@/state/seriesStore';
 import { startDownload } from '@/services/downloadRunner';
+import { Clipboard } from '@capacitor/clipboard';
 import { useToast } from '@/components/ui/Toast';
 import { buildSeriesEpisodeUrl } from '@/services/series.service';
 
@@ -73,12 +74,12 @@ export function EpisodeBrowserModal() {
     } as any);
   };
 
-  const copy = (ep: any) => {
+  const copy = async (ep: any) => {
     try { (navigator as any).vibrate?.(30); } catch { /* ignore */ }
     const creds = credsOf();
     if (!creds) return;
     const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension);
-    try { (navigator as any).clipboard?.writeText(url); showToast('Link do vídeo copiado'); } catch { /* ignore */ }
+    try { await Clipboard.write({ string: url }); showToast('Link do vídeo copiado'); } catch { showToast('Erro ao copiar'); }
   };
 
   return (

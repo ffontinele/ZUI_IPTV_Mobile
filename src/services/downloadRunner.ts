@@ -1,9 +1,9 @@
-// downloadRunner v4 — fluxo UNICO simples, sem estado preso, caminho real
+// downloadRunner v5 — XHR puro (sem fetch/CapacitorHttp), sem estado preso
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useDownloadsStore } from '@/state/downloadsStore';
 import type { DownloadItem } from '@/state/downloadsStore';
 
-const vib = (ms = 30) => { try { (navigator as any).vibrate?.(ms); } catch { /* ignore */ } };
+const vib = (ms = 30) => { try { (navigator as any).vibrate?.(ms); } catch {} };
 const running = new Set<string>();
 
 function safeName(name: string): string {
@@ -15,51 +15,64 @@ export function isRunning(id: string) { return running.has(id); }
 export async function resolvePath(fileName: string): Promise<string> {
   try {
     const r = await Filesystem.getUri({ path: fileName, directory: Directory.Documents });
-    // getUri retorna file:///storage/emulated/0/Android/data/<pkg>/files/Documents/<file>
     return decodeURIComponent(r.uri);
-  } catch {
-    return '';
-  }
+  } catch { return ''; }
+}
+
+function downloadXHR(url: string, onProgress: (loaded: number, total: number) => void, aliveCheck: () => boolean): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onprogress = (e) => { if (aliveCheck()) onProgress(e.loaded, e.lengthComputable ? e.total : 0); };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve((xhr.response as ArrayBuffer) ?? new ArrayBuffer(0));
+      } else {
+        reject(new Error(`Servidor respondeu ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Falha de rede'));
+    xhr.onabort = () => reject(new Error('Cancelado'));
+    xhr.send();
+    // Permite cancelamento externo
+    const check = setInterval(() => { if (!aliveCheck()) { xhr.abort(); clearInterval(check); } }, 500);
+    xhr.onloadend = () => clearInterval(check);
+  });
 }
 
 async function run(id: string, url: string, fileName: string) {
   running.add(id);
   try {
-    const res = await fetch(url);
-    if (!res.ok || !res.body) throw new Error(`Servidor respondeu ${res.status}`);
-    const total = Number(res.headers.get('Content-Length') || 0) || 0;
-    const reader = res.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-    let lastStore = 0;
-    while (true) {
-      if (!running.has(id)) throw new Error('cancelado');
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      received += value.length;
-      const now = Date.now();
-      if (now - lastStore > 400) {
-        lastStore = now;
+    const data = await downloadXHR(
+      url,
+      (loaded, total) => {
+        const now = Date.now();
         useDownloadsStore.getState().update(id, {
           status: 'downloading',
-          bytesDone: received,
+          bytesDone: loaded,
           bytesTotal: total || undefined,
-          progress: total ? Math.min(99, (received / total) * 100) : -1,
+          progress: total ? Math.min(99, (loaded / total) * 100) : -1,
         });
-      }
-    }
-    // Junta e grava uma unica vez (episodios cabem; evita append complexo)
-    const all = new Uint8Array(received);
-    let off = 0;
-    for (const c of chunks) { all.set(c, off); off += c.length; }
+      },
+      () => running.has(id)
+    );
+    if (!running.has(id)) return;
+    // Converte pra base64 em blocos (memoria segura)
+    const bytes = new Uint8Array(data);
     let bin = '';
     const CH = 0x8000;
-    for (let i = 0; i < all.length; i += CH) bin += String.fromCharCode.apply(null, Array.from(all.subarray(i, i + CH)) as any);
+    for (let i = 0; i < bytes.length; i += CH) {
+      bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CH)) as any);
+    }
     const b64 = btoa(bin);
     await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.Documents, recursive: true });
     const uri = (await Filesystem.getUri({ path: fileName, directory: Directory.Documents })).uri;
-    useDownloadsStore.getState().update(id, { status: 'done', progress: 100, bytesDone: received, bytesTotal: total || received, filePath: decodeURIComponent(uri) });
+    useDownloadsStore.getState().update(id, {
+      status: 'done', progress: 100,
+      bytesDone: data.byteLength, bytesTotal: data.byteLength,
+      filePath: decodeURIComponent(uri),
+    });
     vib(80);
   } catch (err) {
     useDownloadsStore.getState().update(id, { status: 'error', error: String((err as any)?.message ?? err) });
@@ -71,11 +84,11 @@ async function run(id: string, url: string, fileName: string) {
 
 export function startDownload(item: DownloadItem) {
   vib();
-  if (running.has(item.id)) return; // ignora cliques repetidos
+  if (running.has(item.id)) return;
   const st = useDownloadsStore.getState();
   st.items.filter((i) => i.url === item.url && i.id !== item.id).forEach((i) => st.remove(i.id));
   const existing = st.items.find((i) => i.id === item.id);
-  if (existing?.status === 'done') { st.remove(item.id); } // permite re-baixar
+  if (existing?.status === 'done') st.remove(item.id);
   const name = safeName(item.fileName || `${item.id}.mp4`);
   st.add({ ...item, fileName: name, status: 'downloading', progress: 0, bytesDone: 0, bytesTotal: undefined });
   void run(item.id, item.url, name);
