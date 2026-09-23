@@ -1,10 +1,10 @@
-// EpisodeBrowserModal — mobile: temporadas em chips, episodios com marca de "onde parou"
+// EpisodeBrowserModal — mobile: temporadas em chips, marca de onde parou, copiar/baixar nativos
 import { useEffect, useMemo } from 'react';
 import { useSeriesStore } from '@/state/seriesStore';
-import { startDownload } from '@/services/downloadRunner';
 import { Clipboard } from '@capacitor/clipboard';
-import { useToast } from '@/components/ui/Toast';
 import { buildSeriesEpisodeUrl } from '@/services/series.service';
+import { startDownload } from '@/services/downloadRunner';
+import { useToast } from '@/components/ui/Toast';
 
 function fmt(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -20,8 +20,8 @@ export function EpisodeBrowserModal() {
   const setDetailsActiveSeason = useSeriesStore((s) => s.setDetailsActiveSeason);
   const playEpisode = useSeriesStore((s) => s.playEpisode);
   const closeSeriesDetails = useSeriesStore((s) => s.closeSeriesDetails);
-  const showToast = useToast((s) => s.show);
   const currentEpisode = useSeriesStore((s) => s.currentEpisode);
+  const showToast = useToast((s) => s.show);
 
   const seriesTitle = useMemo(
     () => useSeriesStore.getState().allSeries.find((s) => s.id === detailsSeriesId)?.title ?? '',
@@ -29,7 +29,6 @@ export function EpisodeBrowserModal() {
   );
   const ce = detailsSeriesId ? currentEpisode[detailsSeriesId] : undefined;
 
-  // Abre ja na temporada do ultimo episodio assistido
   useEffect(() => {
     if (detailsStatus === 'ready' && ce && ce.season) setDetailsActiveSeason(ce.season);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,7 +39,6 @@ export function EpisodeBrowserModal() {
   const activeKey = String(detailsActiveSeason ?? seasonKeys[0] ?? '');
   const episodes: any[] = episodesBySeason[activeKey] ?? [];
 
-  // Traz o episodio marcado pra frente da tela (auto-scroll)
   useEffect(() => {
     if (detailsStatus !== 'ready') return;
     const t = setTimeout(() => {
@@ -55,14 +53,13 @@ export function EpisodeBrowserModal() {
   const credsOf = () => (window as any).__ZUI_XTREAM_CREDS;
 
   const download = (ep: any) => {
-    try { (navigator as any).vibrate?.(30); } catch { /* ignore */ }
     const creds = credsOf();
-    if (!creds) return;
+    if (!creds) { showToast('Sem credenciais da lista'); return; }
     const ss = String(Number(activeKey)).padStart(2, '0');
     const nn = String(ep.episode_num).padStart(2, '0');
     const ext = ep.container_extension ?? 'mp4';
     showToast('⬇ Iniciando download...');
-    startDownload({
+    void startDownload({
       id: `series-ep-${ep.id}`,
       kind: 'episode',
       title: seriesTitle,
@@ -76,11 +73,15 @@ export function EpisodeBrowserModal() {
   };
 
   const copy = async (ep: any) => {
-    try { (navigator as any).vibrate?.(30); } catch { /* ignore */ }
     const creds = credsOf();
-    if (!creds) return;
+    if (!creds) { showToast('Sem credenciais da lista'); return; }
     const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension);
-    try { await Clipboard.write({ string: url }); showToast('Link do vídeo copiado'); } catch { showToast('Erro ao copiar'); }
+    try {
+      await Clipboard.write({ string: url });
+      showToast('📋 Link do vídeo copiado');
+    } catch {
+      showToast('❌ Erro ao copiar');
+    }
   };
 
   return (
@@ -130,8 +131,12 @@ export function EpisodeBrowserModal() {
                 </div>
                 <div className="flex gap-1.5 shrink-0">
                   <button onClick={() => playEpisode(ep, seriesTitle, activeKey)} className="w-9 h-9 rounded-full bg-[#E8B567] text-[#161006] text-sm font-bold">▶</button>
-                  <button onClick={() => download(ep)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-[#E8B567]"><svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11" /><path d="m6 11 6 6 6-6" /><path d="M5 20h14" /></svg></button>
-                  <button onClick={() => copy(ep)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-text-primary"><svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></svg></button>
+                  <button onClick={() => download(ep)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-[#E8B567]">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11" /><path d="m6 11 6 6 6-6" /><path d="M5 20h14" /></svg>
+                  </button>
+                  <button onClick={() => void copy(ep)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-text-primary">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></svg>
+                  </button>
                 </div>
               </div>
             );
