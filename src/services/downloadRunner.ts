@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 
 const vib = (ms = 30) => { try { (navigator as any).vibrate?.(ms); } catch {} };
 const running = new Set<string>();
+let lastProg = 0;
 
 function safeName(s: string): string {
   return s.replace(/[^a-z0-9._-]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase().slice(0, 120) || 'download.mp4';
@@ -47,6 +48,9 @@ export async function startDownload(item: DownloadItem) {
   try {
     listener = await (Filesystem as any).addListener('progress', (data: any) => {
       if (data && data.contentLength > 0 && (!data.url || data.url === item.url)) {
+        const now = Date.now();
+        if (now - lastProg < 500) return; // max 2 atualizacoes/s (menos overhead)
+        lastProg = now;
         const progress = Math.min(99, Math.round((data.bytes / data.contentLength) * 100));
         useDownloadsStore.getState().update(item.id, {
           progress, status: 'downloading',
@@ -101,7 +105,7 @@ export function resumeDownload(id: string) {
 export async function cancelDownload(id: string) {
   running.delete(id);
   const item = useDownloadsStore.getState().items.find((i) => i.id === id);
-  if (item?.status === 'done' && item.fileName) {
+  if (item?.fileName && (item.status === 'done' || item.status === 'error')) {
     try {
       await Filesystem.deleteFile({ path: item.fileName, directory: Directory.Documents });
     } catch { /* arquivo ja nao existe */ }
