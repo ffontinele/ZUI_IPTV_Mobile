@@ -4,6 +4,7 @@ import { useDownloadsStore } from '@/state/downloadsStore';
 import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { useToast } from '@/components/ui/Toast';
+import { pauseDownload, resumeDownload, cancelDownload } from '@/services/downloadRunner';
 
 const STATUS_LABEL: Record<string, string> = {
   queued: 'Na fila',
@@ -48,6 +49,9 @@ export function DownloadsScreen() {
           <p className="text-[11px] uppercase tracking-[0.2em] text-[#E8B567] mb-1">Biblioteca local</p>
           <h1 className="text-2xl font-bold text-white">Downloads</h1>
           <p className="text-xs text-text-secondary mt-1">{items.length} item(ns)</p>
+          {items.length > 0 && (
+            <button onClick={() => { if (window.confirm('Excluir TODOS os downloads?')) items.forEach((i) => cancelDownload(i.id)); }} className="mt-2 self-start px-3.5 py-2 rounded-full bg-red-500/10 text-red-300 text-xs font-semibold">🗑 Excluir todos</button>
+          )}
         </header>
 
         {items.length === 0 && (
@@ -85,10 +89,15 @@ export function DownloadsScreen() {
               >
                 ▶ Assistir
               </button>
+              {it.status === 'downloading' ? (
+                <button onClick={() => pauseDownload(it.id)} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">⏸ Pausar</button>
+              ) : it.status === 'queued' ? (
+                <button onClick={() => resumeDownload(it.id)} className="px-3.5 py-2 rounded-full bg-[#E8B567] text-[#161006] text-xs font-semibold">▶ Retomar</button>
+              ) : null}
               <button onClick={() => copy(it)} className="px-3.5 py-2 rounded-full bg-bg-hover text-text-primary text-xs font-semibold">
                 🔗 Copiar
               </button>
-              <button onClick={() => remove(it.id)} className="px-3.5 py-2 rounded-full bg-red-500/10 text-red-300 text-xs font-semibold">
+              <button onClick={() => cancelDownload(it.id)} className="px-3.5 py-2 rounded-full bg-red-500/10 text-red-300 text-xs font-semibold">
                 🗑 Excluir
               </button>
             </div>
