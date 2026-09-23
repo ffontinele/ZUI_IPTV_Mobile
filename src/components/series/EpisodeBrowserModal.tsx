@@ -61,6 +61,7 @@ export function EpisodeBrowserModal() {
     const ss = String(Number(activeKey)).padStart(2, '0');
     const nn = String(ep.episode_num).padStart(2, '0');
     const ext = ep.container_extension ?? 'mp4';
+    showToast('⬇ Iniciando download...');
     startDownload({
       id: `series-ep-${ep.id}`,
       kind: 'episode',

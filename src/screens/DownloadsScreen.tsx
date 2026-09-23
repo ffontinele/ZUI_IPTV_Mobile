@@ -31,11 +31,17 @@ export function DownloadsScreen() {
   };
 
   const copy = async (it: any) => {
-    if (it.status === 'done' && it.fileName) {
-      const real = await resolvePath(it.fileName);
-      try { await Clipboard.write({ string: real || it.filePath || '' }); showToast(real ? 'Caminho real copiado' : 'Arquivo não encontrado'); } catch { showToast('Erro ao copiar'); }
+    if (it.status === 'done') {
+      // Tenta resolver o caminho real da pasta
+      let path = it.filePath || '';
+      if (!path && it.fileName) path = await resolvePath(it.fileName);
+      if (path) {
+        try { await Clipboard.write({ string: path }); showToast('📁 Caminho do arquivo copiado'); } catch { showToast('Erro ao copiar'); }
+      } else {
+        showToast('Arquivo não encontrado na pasta');
+      }
     } else {
-      try { await Clipboard.write({ string: it.url }); showToast('Link do vídeo copiado'); } catch { showToast('Erro ao copiar'); }
+      try { await Clipboard.write({ string: it.url }); showToast('📋 Link do vídeo copiado'); } catch { showToast('Erro ao copiar'); }
     }
   };
 
