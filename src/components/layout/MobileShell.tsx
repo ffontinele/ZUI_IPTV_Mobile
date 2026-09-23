@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useUIStore } from '@/state/uiStore';
 
 interface MobileShellProps { children: React.ReactNode; }
@@ -15,6 +16,17 @@ const ITEMS = [
 ];
 
 export function MobileShell({ children }: MobileShellProps) {
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      const t = e.target as Element;
+      if (t && t.closest && t.closest('button')) {
+        try { (navigator as any).vibrate?.(12); } catch { /* ignore */ }
+      }
+    };
+    document.addEventListener('click', h, true);
+    return () => document.removeEventListener('click', h, true);
+  }, []);
   const currentScreen = useUIStore((s) => s.currentScreen);
   const navigate = useUIStore((s) => s.navigate);
 
