@@ -1,5 +1,5 @@
 // DownloadProgressBar v2 — flutuante ARRASTAVEL + minimizar/restaurar (sem notificacao externa)
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useDownloadsStore } from '@/state/downloadsStore';
 import { pauseDownload, resumeDownload, cancelDownload, isRunning, speedMap } from '@/services/downloadRunner';
 
@@ -8,11 +8,27 @@ function mb(b?: number) { return b ? `${(b / 1048576).toFixed(1)} MB` : '—'; }
 export function DownloadProgressBar() {
   const items = useDownloadsStore((s) => s.items);
   const [min, setMin] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const autoCloseTimer = useRef<number | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const active = items.find((i) => i.status === 'downloading') ?? items.find((i) => i.status === 'queued' && isRunning(i.id));
   const item = active ?? items.find((i) => i.status === 'queued');
   if (!item) return null;
+
+  useEffect(() => {
+    if (autoCloseTimer.current) { clearTimeout(autoCloseTimer.current); autoCloseTimer.current = null; }
+    if (item.status === 'done') {
+      autoCloseTimer.current = window.setTimeout(() => setHidden(true), 3000);
+    } else if (item.status === 'error') {
+      autoCloseTimer.current = window.setTimeout(() => setHidden(true), 5000);
+    } else {
+      setHidden(false);
+    }
+    return () => { if (autoCloseTimer.current) clearTimeout(autoCloseTimer.current); };
+  }, [item.status, item.id]);
+  if (hidden) return null;
+
   const progress = item.progress ?? 0;
 
   if (min) {

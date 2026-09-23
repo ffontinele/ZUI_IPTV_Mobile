@@ -6,6 +6,8 @@ import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { useExoWatchProgress } from '@/hooks/useExoWatchProgress';
 import { ErrorOverlay } from './ErrorOverlay';
+import { MobileControls } from './MobileControls';
+import { Capacitor } from '@capacitor/core';
 import { Spinner } from '@/components/common/Spinner';
 import type { PlaybackAttempt } from '@/types/player';
 
@@ -125,6 +127,7 @@ export function VideoPlayer() {
       {error && !error.recoverable && (
         <ErrorOverlay message={error.message} attempts={[] as PlaybackAttempt[]} onBack={handleBack} />
       )}
+          {Capacitor.isNativePlatform() && currentSource && <MobileControls onExit={handleBack} />}
     </div>
   );
 }
