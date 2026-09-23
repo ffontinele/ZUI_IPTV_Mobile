@@ -1,5 +1,6 @@
 // DownloadsScreen — mobile: todas as acoes dentro de cada card
 import { useEffect } from 'react';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useDownloadsStore } from '@/state/downloadsStore';
 import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
@@ -22,23 +23,22 @@ export function DownloadsScreen() {
     useDownloadsStore.getState().hydrate();
   }, []);
 
-  const watch = (it: any) => {
-    if (it.status !== 'done' || !it.filePath) {
-      showToast('Ainda não está pronto para assistir');
-      return;
+  const watch = async (it: any) => {
+    let url = it.filePath;
+    if (!url && it.fileName) {
+      try { url = (await Filesystem.getUri({ path: it.fileName, directory: Directory.Documents })).uri; } catch { url = ''; }
     }
-    const url = it.filePath.startsWith('file://') ? it.filePath : 'file://' + it.filePath;
+    if (!url) { showToast('Arquivo não encontrado no aparelho'); return; }
     usePlayerStore.getState().setSource({ id: it.id, name: it.title, url });
     navigate('player');
   };
 
   const copy = (it: any) => {
+    const p = it.filePath ?? it.fileName ?? '';
     try {
-      (navigator as any).clipboard?.writeText(it.url);
-      showToast('URL copiada');
-    } catch {
-      showToast('Não foi possível copiar');
-    }
+      (navigator as any).clipboard?.writeText(p);
+      showToast(p ? 'Caminho do arquivo copiado' : 'Arquivo ainda não baixado');
+    } catch { showToast('Não foi possível copiar'); }
   };
 
   return (
@@ -81,6 +81,9 @@ export function DownloadsScreen() {
             </div>
             <p className="text-[11px] text-text-primary">{it.progress < 0 ? 'baixando… ' + (it.bytesDone ? (it.bytesDone/1048576).toFixed(1)+' MB' : '') : Math.round(it.progress) + '%'}</p>
 
+            {it.status === 'done' && it.fileName && (
+              <p className="text-[10px] text-text-muted truncate">📁 Documents/{it.fileName}</p>
+            )}
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => watch(it)}

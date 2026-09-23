@@ -18,14 +18,14 @@ const ITEMS = [
 export function MobileShell({ children }: MobileShellProps) {
 
   useEffect(() => {
-    const h = (e: MouseEvent) => {
+    const h = (e: PointerEvent) => {
       const t = e.target as Element;
       if (t && t.closest && t.closest('button')) {
         try { (navigator as any).vibrate?.(12); } catch { /* ignore */ }
       }
     };
-    document.addEventListener('click', h, true);
-    return () => document.removeEventListener('click', h, true);
+    document.addEventListener('pointerdown', h, true);
+    return () => document.removeEventListener('pointerdown', h, true);
   }, []);
   const currentScreen = useUIStore((s) => s.currentScreen);
   const navigate = useUIStore((s) => s.navigate);

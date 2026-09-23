@@ -54,13 +54,10 @@ export function PlaylistsScreen() {
 
   const toggleEnabled = (id: string) => {
     const st = useSourceStore.getState() as any;
-    if (typeof st.toggleSource === 'function') st.toggleSource(id);
-    else if (typeof st.setSourceEnabled === 'function') {
-      const src = st.sources.find((x: any) => x.id === id);
-      st.setSourceEnabled(id, !src?.enabled);
-    } else {
-      useSourceStore.setState({ sources: st.sources.map((x: any) => (x.id === id ? { ...x, enabled: !x.enabled } : x)) });
-    }
+    const src = st.sources.find((x: any) => x.id === id);
+    const next = !src?.enabled;
+    if (typeof st.toggleSource === 'function') void st.toggleSource(id, next);
+    else useSourceStore.setState({ sources: st.sources.map((x: any) => (x.id === id ? { ...x, enabled: next } : x)) });
   };
 
   const removeSource = (id: string) => {
