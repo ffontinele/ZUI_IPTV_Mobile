@@ -47,7 +47,6 @@ async function run(id: string, url: string, fileName: string) {
     const data = await downloadXHR(
       url,
       (loaded, total) => {
-        const now = Date.now();
         useDownloadsStore.getState().update(id, {
           status: 'downloading',
           bytesDone: loaded,
