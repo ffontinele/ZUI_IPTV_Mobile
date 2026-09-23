@@ -1,6 +1,7 @@
 // EpisodeBrowserModal — mobile: temporadas em chips, marca de onde parou, copiar/baixar nativos
 import { useEffect, useMemo } from 'react';
 import { useSeriesStore } from '@/state/seriesStore';
+import { useSourceStore } from '@/state/sourceStore';
 import { Clipboard } from '@capacitor/clipboard';
 import { buildSeriesEpisodeUrl } from '@/services/series.service';
 import { startDownload } from '@/services/downloadRunner';
@@ -50,7 +51,17 @@ export function EpisodeBrowserModal() {
 
   if (!detailsSeriesId) return null;
 
-  const credsOf = () => (window as any).__ZUI_XTREAM_CREDS;
+  const credsOf = (): any => {
+    const w = (window as any).__ZUI_XTREAM_CREDS;
+    if (w) return w;
+    try {
+      const src = (useSourceStore.getState().sources ?? []).find((x: any) => x.enabled && x.type === 'xtream');
+      const cfg: any = src?.config ?? {};
+      const url = cfg.url ?? cfg.host ?? cfg.server ?? '';
+      if (!url) return null;
+      return { url, username: cfg.username ?? '', password: cfg.password ?? '' };
+    } catch { return null; }
+  };
 
   const download = (ep: any) => {
     const creds = credsOf();
