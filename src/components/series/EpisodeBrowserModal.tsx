@@ -59,11 +59,12 @@ export function EpisodeBrowserModal() {
       const cfg: any = src?.config ?? {};
       const url = cfg.url ?? cfg.host ?? cfg.server ?? '';
       if (!url) return null;
-      return { url, username: cfg.username ?? '', password: cfg.password ?? '' };
+      return { url: String(url), username: String(cfg.username ?? cfg.user ?? ''), password: String(cfg.password ?? cfg.pass ?? '') };
     } catch { return null; }
   };
 
   const download = (ep: any) => {
+    try {
     const creds = credsOf();
     if (!creds) { showToast('Sem credenciais da lista'); return; }
     const ss = String(Number(activeKey)).padStart(2, '0');
@@ -75,24 +76,27 @@ export function EpisodeBrowserModal() {
       kind: 'episode',
       title: seriesTitle,
       subtitle: `S${ss}:E${nn} - ${ep.title ?? ''}`,
-      url: buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension),
+      url: buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension ?? 'mp4'),
       fileName: `${seriesTitle}_S${ss}E${nn}.${ext}`,
       status: 'queued',
       progress: 0,
       addedAt: Date.now(),
     } as any);
+    } catch (e) { showToast('Erro ao baixar: ' + String((e as any)?.message ?? e)); }
   };
 
   const copy = async (ep: any) => {
+    try {
     const creds = credsOf();
     if (!creds) { showToast('Sem credenciais da lista'); return; }
-    const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension);
+    const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension ?? 'mp4');
     try {
       await Clipboard.write({ string: url });
       showToast('📋 Link do vídeo copiado');
     } catch {
       showToast('❌ Erro ao copiar');
     }
+    } catch (e) { showToast('Erro: ' + String((e as any)?.message ?? e)); }
   };
 
   return (

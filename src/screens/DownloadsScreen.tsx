@@ -36,7 +36,7 @@ export function DownloadsScreen() {
   const copy = async (it: any) => {
     if (it.status === 'done') {
       // Caminho REAL da pasta (/storage/emulated/0/Documents/...)
-      const path = it.filePath || (it.fileName ? await resolvePath(it.fileName) : '');
+      const path = (it.filePath && !String(it.filePath).startsWith('http')) ? it.filePath : `/storage/emulated/0/Documents/${it.fileName}`;
       if (path) {
         try {
           await Clipboard.write({ string: path });

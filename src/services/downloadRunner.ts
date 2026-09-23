@@ -98,8 +98,14 @@ export function resumeDownload(id: string) {
   void startDownload(item);
 }
 
-export function cancelDownload(id: string) {
+export async function cancelDownload(id: string) {
   running.delete(id);
+  const item = useDownloadsStore.getState().items.find((i) => i.id === id);
+  if (item?.status === 'done' && item.fileName) {
+    try {
+      await Filesystem.deleteFile({ path: item.fileName, directory: Directory.Documents });
+    } catch { /* arquivo ja nao existe */ }
+  }
   useDownloadsStore.getState().remove(id);
   vib();
 }
