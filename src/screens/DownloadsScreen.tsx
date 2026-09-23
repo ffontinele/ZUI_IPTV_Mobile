@@ -15,7 +15,6 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function DownloadsScreen() {
   const items = useDownloadsStore((s) => s.items);
-  const remove = useDownloadsStore((s) => s.remove);
   const navigate = useUIStore((s) => s.navigate);
   const showToast = useToast((s) => s.show);
 
