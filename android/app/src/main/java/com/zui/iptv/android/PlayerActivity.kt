@@ -1,4 +1,4 @@
-package com.zui.iptv.mobile
+package com.zui.iptv.android
 
 import android.app.Activity
 import android.content.Intent
