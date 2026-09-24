@@ -6,6 +6,7 @@ import { useSeriesStore } from '@/state/seriesStore';
 import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
+import { MovieDetailsModal } from '@/components/movies/MovieDetailsModal';
 
 export function RecentsScreen() {
   const navigate = useUIStore((s) => s.navigate);
@@ -122,6 +123,7 @@ export function RecentsScreen() {
       )}
 
       {detailsSeriesId && <EpisodeBrowserModal />}
+      <MovieDetailsModal />
     </div>
   );
 }

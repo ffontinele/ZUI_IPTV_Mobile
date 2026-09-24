@@ -6,6 +6,7 @@ import { useSourceStore } from '@/state/sourceStore';
 import { useMoviesStore } from '@/state/moviesStore';
 import { useSeriesStore } from '@/state/seriesStore';
 import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
+import { MovieDetailsModal } from '@/components/movies/MovieDetailsModal';
 import { usePlayerStore } from '@/state/playerStore';
 
 function greeting(date: Date): string {
@@ -160,6 +161,7 @@ export function HomeScreen() {
       </div>
 
       {detailsSeriesId && <EpisodeBrowserModal />}
+      <MovieDetailsModal />
     </div>
   );
 }

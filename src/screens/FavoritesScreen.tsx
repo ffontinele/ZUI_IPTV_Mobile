@@ -1,6 +1,7 @@
 // FavoritesScreen — favoritos de canais, filmes e series num so lugar
 import { useEffect, useMemo, useState } from 'react';
 import { EpisodeBrowserModal } from '@/components/series/EpisodeBrowserModal';
+import { MovieDetailsModal } from '@/components/movies/MovieDetailsModal';
 import { usePlaylistStore } from '@/state/playlistStore';
 import { useMoviesStore } from '@/state/moviesStore';
 import { useSeriesStore } from '@/state/seriesStore';
@@ -80,16 +81,18 @@ export function FavoritesScreen() {
         )}
         {tab === 'movies' && (
           favMovies.length === 0 ? <Empty msg="Nenhum filme favorito ainda." /> :
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar p-3">
             {favMovies.map((m) => (
-              <div key={m.id} className="relative rounded-lg overflow-hidden bg-bg-elevated">
-                <button onClick={() => openMovieDetails(m.id)} className="w-full">
+              <div key={m.id} className="relative shrink-0 w-28">
+                <button onClick={() => openMovieDetails(m.id)} className="w-full rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
                   <div className="aspect-[2/3] bg-bg-hover">
-                    {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">🎬</div>}
+                    {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>}
                   </div>
-                  <p className="p-2 text-xs text-text-[#E8B567] line-clamp-2 leading-tight text-left">{m.title}</p>
+                  <div className="p-1.5">
+                    <p className="text-[10px] text-text-primary truncate">{m.title}</p>
+                  </div>
                 </button>
-                <button onClick={() => toggleMovieFav(m.id)} className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-sm">⭐</button>
+                <button onClick={() => toggleMovieFav(m.id)} className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-sm flex items-center justify-center">⭐</button>
               </div>
             ))}
           </div>
@@ -113,6 +116,7 @@ export function FavoritesScreen() {
       </div>
 
       {detailsSeriesId && <EpisodeBrowserModal />}
+      <MovieDetailsModal />
     </div>
   );
 }
