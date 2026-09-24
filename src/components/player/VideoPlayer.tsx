@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CapacitorVideoPlayer } from 'capacitor-video-player';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { useFocusable } from '@noriginmedia/norigin-spatial-navigation';
@@ -6,7 +6,7 @@ import { usePlayerStore } from '@/state/playerStore';
 import { useUIStore } from '@/state/uiStore';
 import { useExoWatchProgress } from '@/hooks/useExoWatchProgress';
 import { ErrorOverlay } from './ErrorOverlay';
-import { MobileControls } from './MobileControls';
+import { MobileHtmlPlayer } from './MobileHtmlPlayer';
 import { Capacitor } from '@capacitor/core';
 import { Spinner } from '@/components/common/Spinner';
 import type { PlaybackAttempt } from '@/types/player';
@@ -21,6 +21,9 @@ export function VideoPlayer() {
   const setError = usePlayerStore((s) => s.setError);
 
   const navigate = useUIStore((s) => s.navigate);
+  const [htmlMode, setHtmlMode] = useState(() => Capacitor.isNativePlatform());
+  const htmlModeRef = useRef(htmlMode);
+  htmlModeRef.current = htmlMode;
   const lastMainScreen = useUIStore((s) => s.lastMainScreen);
 
   const { pause, resume } = useFocusable({ focusKey: 'PLAYER_ROOT' });
@@ -32,6 +35,7 @@ export function VideoPlayer() {
 
   useEffect(() => {
     if (!currentSource) return;
+    if (htmlModeRef.current) return;
     setState('loading');
     let cancelled = false;
     const listeners: PluginListenerHandle[] = [];
@@ -121,13 +125,16 @@ export function VideoPlayer() {
     navigate(lastMainScreen);
   };
 
+  if (htmlMode && currentSource) {
+    return <MobileHtmlPlayer onFallback={() => setHtmlMode(false)} />;
+  }
+
   return (
     <div className="relative w-full h-full bg-black overflow-hidden">
       {playerState === 'loading' && <Spinner />}
       {error && !error.recoverable && (
         <ErrorOverlay message={error.message} attempts={[] as PlaybackAttempt[]} onBack={handleBack} />
       )}
-          {Capacitor.isNativePlatform() && currentSource && <MobileControls onExit={handleBack} />}
-    </div>
+        </div>
   );
 }
