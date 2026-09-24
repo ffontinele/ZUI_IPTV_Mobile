@@ -23,6 +23,9 @@ class PlayerActivity : Activity() {
     private var downX = 0f; private var downY = 0f; private var dragging = false
     private var baseVol = 0; private var baseBright = -1f
     private var indicator: TextView? = null
+    private var titleView: TextView? = null
+    private val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var progressRunnable: Runnable? = null
 
     companion object { var instance: PlayerActivity? = null }
 
@@ -47,6 +50,7 @@ class PlayerActivity : Activity() {
             title.setTextColor(0xFFFFFFFF.toInt())
             title.textSize = 15f
             root.addView(title, FrameLayout.LayoutParams(-1, -2))
+            titleView = title
 
             val nav = LinearLayout(this)
             nav.orientation = LinearLayout.HORIZONTAL
@@ -82,18 +86,31 @@ class PlayerActivity : Activity() {
             val rs = intent.getLongExtra("resumeSec", 0)
             if (rs > 0) p.seekTo(rs * 1000)
             p.playWhenReady = true
+            progressRunnable = object : Runnable {
+                override fun run() {
+                    val pl = player
+                    if (pl != null) {
+                        val pos = pl.currentPosition / 1000
+                        val dur = (pl.duration / 1000).coerceAtLeast(0)
+                        NativePlayerPlugin.instance?.emit("progress", JSObject().put("position", pos).put("duration", dur))
+                        progressHandler.postDelayed(this, 5000)
+                    }
+                }
+            }
+            progressHandler.postDelayed(progressRunnable!!, 5000)
         } catch (e: Exception) {
             setResult(RESULT_CANCELED, Intent().putExtra("error", e.message ?: "erro"))
             finish()
         }
     }
 
-    fun switchUrl(url: String) {
+    fun switchUrl(url: String, newTitle: String?) {
         try {
             val p = player ?: return
             p.setMediaItem(MediaItem.fromUri(url))
             p.prepare()
             p.playWhenReady = true
+            if (newTitle != null) titleView?.text = newTitle
         } catch (_: Exception) { /* nunca crasha */ }
     }
 
@@ -135,6 +152,7 @@ class PlayerActivity : Activity() {
     }
 
     override fun onDestroy() {
+        progressRunnable?.let { progressHandler.removeCallbacks(it) }
         val p = player
         if (p != null) {
             val pos = (p.currentPosition / 1000).coerceAtLeast(0)

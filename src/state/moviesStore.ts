@@ -283,6 +283,7 @@ export const useMoviesStore = create<MoviesStore>()(
         const hlsUrl = buildVodUrl(creds, streamId, 'm3u8');
         const candidates = ext !== 'm3u8' ? [hlsUrl] : [];
 
+        usePlayerStore.getState().setSeriesContext(null);
         const savedProgress = get().watchProgress[id] ?? 0;
         usePlayerStore.getState().setResumeRatio(savedProgress > 0.02 && savedProgress < 0.95 ? savedProgress : 0);
 

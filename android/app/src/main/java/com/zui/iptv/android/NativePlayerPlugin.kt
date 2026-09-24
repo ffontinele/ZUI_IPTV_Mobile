@@ -44,8 +44,9 @@ class NativePlayerPlugin : Plugin() {
         val url = call.getString("url") ?: ""
         // ExoPlayer EXIGE main thread; Capacitor roda plugin methods em background.
         // Despacha pra main thread pra nao crashar (IllegalStateException).
+        val title = call.getString("title")
         android.os.Handler(android.os.Looper.getMainLooper()).post {
-            try { PlayerActivity.instance?.switchUrl(url) } catch (_: Exception) {}
+            try { PlayerActivity.instance?.switchUrl(url, title) } catch (_: Exception) {}
         }
         call.resolve()
     }

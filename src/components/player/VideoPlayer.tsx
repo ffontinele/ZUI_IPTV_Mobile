@@ -170,7 +170,10 @@ export function VideoPlayer() {
       useSeriesStore.getState().setCurrentEpisode(ctx.seriesId, { season: ctx.seasonKey, episode: ep.episode_num, title: ep.title ?? '', remaining: '', resumeSec: 0 });
       void NativePlayer.switchUrl({ url, title: `${ctx.seriesTitle} · S${sn}·E${en}` });
     });
-    return () => { cancelled = true; sub.remove(); };
+    const subProg = NativePlayer.addListener('progress', (d: any) => {
+      savePos(d?.position ?? 0, d?.duration ?? 0);
+    });
+    return () => { cancelled = true; sub.remove(); subProg.remove(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSource, useJeep]);
 
