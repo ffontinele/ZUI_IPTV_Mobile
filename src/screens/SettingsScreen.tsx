@@ -5,6 +5,7 @@ import { useParentalStore } from '@/state/parentalStore';
 import { usePlaylistStore } from '@/state/playlistStore';
 import { useMoviesStore } from '@/state/moviesStore';
 import { useSeriesStore } from '@/state/seriesStore';
+import { useUIStore } from '@/state/uiStore';
 
 type Modal = null | 'lang' | 'subs' | 'hideTv' | 'hideMovies' | 'hideSeries';
 
@@ -18,14 +19,11 @@ export function SettingsScreen() {
   const movies = useMoviesStore((s) => s as any);
   const series = useSeriesStore((s) => s as any);
 
-  // BACK fecha o modal primeiro
+  // BACK fecha o modal primeiro (protocolo backHandler — independe de ordem de registro)
   useEffect(() => {
-    if (!modal) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.keyCode === 461) { e.preventDefault(); e.stopImmediatePropagation(); setModal(null); }
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    if (!modal) { useUIStore.getState().setBackHandler(null); return; }
+    useUIStore.getState().setBackHandler(() => { setModal(null); return true; });
+    return () => { useUIStore.getState().setBackHandler(null); };
   }, [modal]);
 
   const lang = settings.language ?? settings.locale ?? 'pt';

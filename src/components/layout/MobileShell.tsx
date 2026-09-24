@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
-import { useUIStore } from '@/state/uiStore';
 import { useEffect, useRef } from 'react';
+import { useUIStore } from '@/state/uiStore';
 
 interface MobileShellProps { children: React.ReactNode; }
 
@@ -30,7 +29,6 @@ export function MobileShell({ children }: MobileShellProps) {
   }, []);
   const currentScreen = useUIStore((s) => s.currentScreen);
   const navigate = useUIStore((s) => s.navigate);
-  const currentScreen = useUIStore((s) => s.currentScreen);
   const navRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {

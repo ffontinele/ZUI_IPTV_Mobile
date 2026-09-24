@@ -17,12 +17,9 @@ export function PlaylistsScreen() {
   const [form, setForm] = useState({ url: '', username: '', password: '', name: '' });
 
   useEffect(() => {
-    if (!editing) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.keyCode === 461) { e.preventDefault(); e.stopImmediatePropagation(); setEditing(null); }
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    if (!editing) { useUIStore.getState().setBackHandler(null); return; }
+    useUIStore.getState().setBackHandler(() => { setEditing(null); return true; });
+    return () => { useUIStore.getState().setBackHandler(null); };
   }, [editing]);
 
   const openEdit = (src: any) => {

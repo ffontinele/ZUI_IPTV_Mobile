@@ -138,7 +138,10 @@ export default function App() {
       // 3. Modal de serie aberto: fecha
       const ss = useSeriesStore.getState();
       if (ss.detailsSeriesId) { ss.closeSeriesDetails(); return; }
-      // 4. Player: nao faz nada aqui (o plugin nativo ja trata a saida)
+      // 4. Nivel interno da tela atual (modal de Config, edicao de Listas...)
+      const bh = st.backHandler;
+      if (bh && bh()) return;
+      // 5. Player: nao faz nada aqui (o plugin nativo ja trata a saida)
       if (st.currentScreen === 'player') return;
       // 5. NOVA REGRA: qualquer tela que nao seja Home, volta pra Home
       //    (Recentes, Favoritos, Downloads, Playlists, EPG, Config, etc -> Home)

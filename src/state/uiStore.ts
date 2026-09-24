@@ -16,6 +16,8 @@ type UIStore = {
   navigate: (s: Screen) => void;
   goBack: () => boolean;
   openModal: (m: 'exit') => void;
+  backHandler: (() => boolean) | null;
+  setBackHandler: (fn: (() => boolean) | null) => void;
   closeModal: () => void;
 };
 
@@ -50,6 +52,8 @@ export const useUIStore = create<UIStore>()(
         return false;
       },
       openModal: (m) => set({ modalOpen: m }),
+      backHandler: null,
+      setBackHandler: (fn) => set({ backHandler: fn }),
       closeModal: () => set({ modalOpen: null }),
     }),
     {
