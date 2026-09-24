@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useUIStore } from '@/state/uiStore';
+import { useEffect, useRef } from 'react';
 
 interface MobileShellProps { children: React.ReactNode; }
 
@@ -29,6 +30,14 @@ export function MobileShell({ children }: MobileShellProps) {
   }, []);
   const currentScreen = useUIStore((s) => s.currentScreen);
   const navigate = useUIStore((s) => s.navigate);
+  const currentScreen = useUIStore((s) => s.currentScreen);
+  const navRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (navRef.current && typeof navRef.current.scrollIntoView === 'function') {
+      navRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+  }, [currentScreen]);
 
   return (
     <div className="flex flex-col md:flex-row h-full w-full bg-bg-base">
@@ -45,7 +54,9 @@ export function MobileShell({ children }: MobileShellProps) {
           return (
             <button
               key={item.id}
-              onClick={() => navigate(item.screen)}
+              data-screen={item.screen}
+                ref={el => { if (el && item.screen === currentScreen) navRef.current = el; }}
+                onClick={() => navigate(item.screen)}
               className={[
                 'flex-1 md:flex-none md:w-full shrink-0 flex flex-col items-center justify-center gap-0.5 py-1 md:py-2 md:mx-1.5 md:rounded-lg transition-colors',
                 active ? 'md:bg-[#E8B567]/10' : '',
