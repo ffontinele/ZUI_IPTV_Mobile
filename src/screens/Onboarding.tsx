@@ -4,6 +4,7 @@ import { Clipboard } from '@capacitor/clipboard';
 // Aynı zamanda PlaylistsScreen'in "empty state" geçişini tetikler.
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+let __lastBackAt = 0; // debounce global de BACK (evento dispara 2x)
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation';
 import { useTranslation } from 'react-i18next';
 import { FocusableInput } from '@/components/common/FocusableInput';
@@ -251,20 +252,18 @@ function SelectStep({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
-  const cardsRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const hasSources = useSourceStore((s) => s.sources.length > 0);
 
   useEffect(() => {
-    // Se ja existem listas, rola direto pros cards (pula o hero "Ola.")
-    if (hasSources && cardsRef.current) {
-      setTimeout(() => {
-        cardsRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
-      }, 100);
+    // Se ja existem listas, rola o container raiz ate o fim (cards visiveis)
+    if (hasSources && rootRef.current) {
+      setTimeout(() => { rootRef.current?.scrollTo({ top: rootRef.current.scrollHeight, behavior: 'auto' }); }, 120);
     }
   }, [hasSources]);
 
   return (
-    <div className="flex flex-col items-center justify-start h-full overflow-y-auto px-4 py-8">
+    <div ref={rootRef} className="flex flex-col items-center justify-start h-full overflow-y-auto px-4 py-8">
       {/* ZUI Logo */}
       {/* Geri butonu — sol üst (GitHub badge'in karşısı) */}
       <div className="absolute top-8 left-12 z-10">
@@ -662,6 +661,9 @@ export function Onboarding() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.keyCode !== 461 && e.keyCode !== 27) return;
+      const __now = Date.now();
+      if (__now - __lastBackAt < 400) return; // ignora 2o evento do mesmo aperto
+      __lastBackAt = __now;
       e.preventDefault();
       e.stopImmediatePropagation(); // bloqueia tb listeners do window (App) -> evita duplo back
       if (step === 'syncing') return; // sync sırasında BACK yasak
