@@ -26,6 +26,8 @@ export function MobileHtmlPlayer({ onFallback }: { onFallback: () => void }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(true);
+  const visibleRef = useRef(true);
+  visibleRef.current = visible;
   const [ind, setInd] = useState<{ t: 'vol' | 'bri'; v: number } | null>(null);
   const [bri, setBri] = useState(1);
   const [cur, setCur] = useState(0);
@@ -70,6 +72,7 @@ export function MobileHtmlPlayer({ onFallback }: { onFallback: () => void }) {
   };
 
   const onDown = (e: React.PointerEvent) => {
+    if (!visibleRef.current) { poke(); return; } // 1o toque so acende os controles
     const side = e.clientX < window.innerWidth / 2 ? 'l' : 'r';
     swipe.current = {
       y: e.clientY, side, moved: false,

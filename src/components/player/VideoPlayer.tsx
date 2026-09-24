@@ -116,7 +116,7 @@ export function VideoPlayer() {
       CapacitorVideoPlayer.stopAllPlayers().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSource]);
+  }, [currentSource, htmlMode]);
 
   useExoWatchProgress(true);
 
