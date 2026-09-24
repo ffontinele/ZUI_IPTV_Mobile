@@ -26,7 +26,14 @@ export function MovieDetailsModal() {
   const playMovie = useMoviesStore((s) => s.playMovie);
   const toggleFavorite = useMoviesStore((s) => s.toggleFavorite);
   const showToast = useToast((s) => s.show);
-  const resumeSec = useMoviesStore((s) => (detailsMovieId ? s.resumeSecByMovie[detailsMovieId] ?? 0 : 0));
+  const resumeSec = useMoviesStore((s) => {
+    if (!detailsMovieId) return 0;
+    const sec = s.resumeSecByMovie[detailsMovieId] ?? 0;
+    if (sec > 10) return sec;
+    const ratio = s.watchProgress[detailsMovieId] ?? 0;
+    const dur = s.movieDurationSec[detailsMovieId] ?? 0;
+    return ratio > 0.001 && ratio < 0.95 && dur > 0 ? Math.floor(ratio * dur) : 0;
+  });
 
   if (!movie) return null;
 

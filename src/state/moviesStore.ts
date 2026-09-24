@@ -97,6 +97,7 @@ type MoviesStore = {
   favoriteIds: string[];
   watchProgress: Record<string, number>;   // 0–1
   resumeSecByMovie: Record<string, number>;
+  movieDurationSec: Record<string, number>;
   sortBy: MovieSort;
   categorySearch: string;
   newThisWeekCount: number;
@@ -114,7 +115,7 @@ type MoviesStore = {
   toggleFavorite: (id: string) => void;
   setWatchProgress: (id: string, progress: number) => void;
   clearResume: () => void;
-  setResumeSecMovie: (id: string, sec: number) => void;
+  setResumeSecMovie: (id: string, sec: number, dur?: number) => void;
   clearMovieResume: (id: string) => void;
   clearFavorites: () => void;
   toggleHiddenCategory: (id: string) => void;
@@ -141,6 +142,7 @@ export const useMoviesStore = create<MoviesStore>()(
       favoriteIds: [],
       watchProgress: {},
       resumeSecByMovie: {},
+      movieDurationSec: {},
       hiddenCategoryIds: [],
       synopsisCache: {},
       sortBy: 'added',
@@ -252,8 +254,9 @@ export const useMoviesStore = create<MoviesStore>()(
         get()._updateSpecials();
       },
 
-      setResumeSecMovie: (id, sec) => {
-        set({ resumeSecByMovie: { ...get().resumeSecByMovie, [id]: sec } });
+      setResumeSecMovie: (id, sec, dur) => {
+        const nd = dur && dur > 0 ? { ...get().movieDurationSec, [id]: dur } : get().movieDurationSec;
+        set({ resumeSecByMovie: { ...get().resumeSecByMovie, [id]: sec }, movieDurationSec: nd });
       },
 
       clearMovieResume: (id) => {
@@ -379,6 +382,7 @@ export const useMoviesStore = create<MoviesStore>()(
         favoriteIds: s.favoriteIds,
         watchProgress: s.watchProgress,
         resumeSecByMovie: s.resumeSecByMovie,
+        movieDurationSec: s.movieDurationSec,
         hiddenCategoryIds: s.hiddenCategoryIds,
         sortBy: s.sortBy,
         activeCategory: s.activeCategory,

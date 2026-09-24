@@ -147,7 +147,7 @@ export function VideoPlayer() {
         }
       } else if (id.startsWith('vod-')) {
         useMoviesStore.getState().setWatchProgress(id.replace('vod-', ''), ratio);
-        useMoviesStore.getState().setResumeSecMovie(id.replace('vod-', ''), Math.floor(pos));
+        useMoviesStore.getState().setResumeSecMovie(id.replace('vod-', ''), Math.floor(pos), dur);
       }
     };
     (async () => {
@@ -156,7 +156,16 @@ export function VideoPlayer() {
         if (cancelled) return;
         savePos(res?.position ?? 0, res?.duration ?? 0);
         usePlayerStore.getState().setResumeSec(0);
-        navigate(useUIStore.getState().lastMainScreen);
+        const dest = useUIStore.getState().lastMainScreen;
+        navigate(dest);
+        // Reabre o modal de onde o video foi iniciado (pilha player->modal->tela)
+        const ctxNow = usePlayerStore.getState().seriesContext;
+        if (currentSource.id.startsWith('series-') && ctxNow?.seriesId) {
+          useSeriesStore.getState().setActiveSeason(ctxNow.seriesId, ctxNow.seasonKey);
+          void useSeriesStore.getState().openSeriesDetails(ctxNow.seriesId);
+        } else if (currentSource.id.startsWith('vod-')) {
+          useMoviesStore.getState().openMovieDetails(currentSource.id.replace('vod-', ''));
+        }
       } catch {
         if (!cancelled) setUseJeep(true);
       }
