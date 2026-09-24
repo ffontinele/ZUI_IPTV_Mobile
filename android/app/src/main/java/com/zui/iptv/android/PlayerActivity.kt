@@ -2,6 +2,7 @@ package com.zui.iptv.android
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.media.AudioManager
 import android.os.Bundle
 import android.view.Gravity
@@ -28,6 +29,7 @@ class PlayerActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         instance = this
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         try {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             audio = getSystemService(AUDIO_SERVICE) as AudioManager
@@ -55,8 +57,8 @@ class PlayerActivity : Activity() {
                 val btnNext = TextView(this); btnNext.text = " ⏭ "
                 btnNext.setTextColor(0xFFFFFFFF.toInt()); btnNext.textSize = 20f
                 btnNext.setPadding(44, 22, 44, 22); btnNext.setBackgroundColor(0x66000000)
-                btnPrev.setOnClickListener { NativePlayerPlugin.instance?.emit("episodeNav", JSObject().put("dir", "prev")) }
-                btnNext.setOnClickListener { NativePlayerPlugin.instance?.emit("episodeNav", JSObject().put("dir", "next")) }
+                btnPrev.setOnClickListener { try { NativePlayerPlugin.instance?.emit("episodeNav", JSObject().put("dir", "prev")) } catch (_: Exception) {} }
+                btnNext.setOnClickListener { try { NativePlayerPlugin.instance?.emit("episodeNav", JSObject().put("dir", "next")) } catch (_: Exception) {} }
                 nav.addView(btnPrev); nav.addView(btnNext)
             }
             val nlp = FrameLayout.LayoutParams(-2, -2)
@@ -116,7 +118,7 @@ class PlayerActivity : Activity() {
                     if (downX > w / 2) {
                         val v = (baseVol + frac * maxVol).toInt().coerceIn(0, maxVol)
                         audio?.setStreamVolume(AudioManager.STREAM_MUSIC, v, 0)
-                        indicator?.text = "🔊 $v/$maxVol"
+                        indicator?.text = "🔊 " + (v * 100 / maxVol) + "%"
                     } else {
                         val cur = if (baseBright < 0) 0.5f else baseBright
                         val br = (cur + frac).coerceIn(0.05f, 1f)

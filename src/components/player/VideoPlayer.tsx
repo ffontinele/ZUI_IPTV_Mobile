@@ -163,7 +163,7 @@ export function VideoPlayer() {
       const ep = eps[idx];
       const creds = (window as any).__ZUI_XTREAM_CREDS;
       if (!creds) return;
-      const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension);
+      const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension ?? 'mp4');
       const sn = String(Number(ctx.seasonKey)).padStart(2, '0');
       const en = String(ep.episode_num).padStart(2, '0');
       st.setSeriesContext({ ...ctx, episodeIndex: idx });
