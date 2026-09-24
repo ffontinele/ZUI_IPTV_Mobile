@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
+import com.zui.iptv.android.NativePlayerPlugin;
 
 public class MainActivity extends BridgeActivity {
   @Override
