@@ -11,6 +11,13 @@ function getCreds() {
   return src ? (src.config as any) : null;
 }
 
+function fmtSec(t: number): string {
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const sec = Math.floor(t % 60);
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+}
+
 export function MovieDetailsModal() {
   const detailsMovieId = useMoviesStore((s) => s.detailsMovieId);
   const movie = useMoviesStore((s) => (detailsMovieId ? s.allMovies.find((m) => m.id === detailsMovieId) ?? null : null));
@@ -19,6 +26,7 @@ export function MovieDetailsModal() {
   const playMovie = useMoviesStore((s) => s.playMovie);
   const toggleFavorite = useMoviesStore((s) => s.toggleFavorite);
   const showToast = useToast((s) => s.show);
+  const resumeSec = useMoviesStore((s) => (detailsMovieId ? s.resumeSecByMovie[detailsMovieId] ?? 0 : 0));
 
   if (!movie) return null;
 
@@ -26,6 +34,12 @@ export function MovieDetailsModal() {
   const c2 = movie.gradient?.[1] ?? '#1A1A1A';
 
   const handlePlay = () => {
+    closeMovieDetails();
+    playMovie(movie.id);
+  };
+
+  const handleFromStart = () => {
+    useMoviesStore.getState().clearMovieResume(movie.id);
     closeMovieDetails();
     playMovie(movie.id);
   };
@@ -145,10 +159,21 @@ export function MovieDetailsModal() {
 
           {/* Acoes principais */}
           <div className="px-4 pb-4 flex flex-col gap-2">
-            <button onClick={handlePlay} className="w-full h-12 rounded-full bg-[#E8B567] text-[#161006] text-sm font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_-4px_#E8B567]">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M7 4v16l13-8z" /></svg>
-              ▶ Assistir
-            </button>
+            {resumeSec > 10 ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={handlePlay} className="h-12 rounded-full bg-[#E8B567] text-[#161006] text-sm font-bold flex items-center justify-center gap-1.5 shadow-[0_0_20px_-4px_#E8B567]">
+                  ▶ Continuar de {fmtSec(resumeSec)}
+                </button>
+                <button onClick={handleFromStart} className="h-12 rounded-full bg-bg-hover text-text-primary text-sm font-bold flex items-center justify-center gap-1.5">
+                  ↺ Do início
+                </button>
+              </div>
+            ) : (
+              <button onClick={handlePlay} className="w-full h-12 rounded-full bg-[#E8B567] text-[#161006] text-sm font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_-4px_#E8B567]">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M7 4v16l13-8z" /></svg>
+                ▶ Assistir
+              </button>
+            )}
             <div className="grid grid-cols-3 gap-2">
               <button onClick={handleDownload} className="h-11 rounded-full bg-bg-hover text-text-primary text-xs font-semibold flex flex-col items-center justify-center gap-0.5">
                 <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#E8B567]" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11" /><path d="m6 11 6 6 6-6" /><path d="M5 20h14" /></svg>

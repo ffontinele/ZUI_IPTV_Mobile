@@ -147,6 +147,7 @@ export function VideoPlayer() {
         }
       } else if (id.startsWith('vod-')) {
         useMoviesStore.getState().setWatchProgress(id.replace('vod-', ''), ratio);
+        useMoviesStore.getState().setResumeSecMovie(id.replace('vod-', ''), Math.floor(pos));
       }
     };
     (async () => {
@@ -155,7 +156,7 @@ export function VideoPlayer() {
         if (cancelled) return;
         savePos(res?.position ?? 0, res?.duration ?? 0);
         usePlayerStore.getState().setResumeSec(0);
-        navigate(lastMainScreen);
+        navigate(useUIStore.getState().lastMainScreen);
       } catch {
         if (!cancelled) setUseJeep(true);
       }

@@ -47,9 +47,18 @@ class PlayerActivity : Activity() {
             playerView.controllerShowTimeoutMs = 3500
             root.addView(playerView, FrameLayout.LayoutParams(-1, -1))
 
+            val btnBack = TextView(this)
+            btnBack.text = " ← "
+            btnBack.setTextColor(0xFFFFFFFF.toInt())
+            btnBack.textSize = 26f
+            btnBack.setPadding(30, 26, 30, 26)
+            btnBack.setOnClickListener { finish() }
+            val lpBack = FrameLayout.LayoutParams(-2, -2)
+            lpBack.gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            root.addView(btnBack, lpBack)
             val title = TextView(this)
             title.text = intent.getStringExtra("title") ?: ""
-            title.setPadding(48, 40, 48, 40)
+            title.setPadding(120, 44, 48, 40)
             title.setTextColor(0xFFFFFFFF.toInt())
             title.textSize = 15f
             root.addView(title, FrameLayout.LayoutParams(-1, -2))

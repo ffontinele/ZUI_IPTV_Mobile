@@ -96,6 +96,7 @@ type MoviesStore = {
   detailsMovieId: string | null;
   favoriteIds: string[];
   watchProgress: Record<string, number>;   // 0–1
+  resumeSecByMovie: Record<string, number>;
   sortBy: MovieSort;
   categorySearch: string;
   newThisWeekCount: number;
@@ -113,6 +114,8 @@ type MoviesStore = {
   toggleFavorite: (id: string) => void;
   setWatchProgress: (id: string, progress: number) => void;
   clearResume: () => void;
+  setResumeSecMovie: (id: string, sec: number) => void;
+  clearMovieResume: (id: string) => void;
   clearFavorites: () => void;
   toggleHiddenCategory: (id: string) => void;
   fetchSynopsis: (movieId: string) => Promise<void>;
@@ -137,6 +140,7 @@ export const useMoviesStore = create<MoviesStore>()(
       detailsMovieId: null,
       favoriteIds: [],
       watchProgress: {},
+      resumeSecByMovie: {},
       hiddenCategoryIds: [],
       synopsisCache: {},
       sortBy: 'added',
@@ -248,6 +252,18 @@ export const useMoviesStore = create<MoviesStore>()(
         get()._updateSpecials();
       },
 
+      setResumeSecMovie: (id, sec) => {
+        set({ resumeSecByMovie: { ...get().resumeSecByMovie, [id]: sec } });
+      },
+
+      clearMovieResume: (id) => {
+        const rw = { ...get().watchProgress }; delete rw[id];
+        const rs = { ...get().resumeSecByMovie }; delete rs[id];
+        set({ watchProgress: rw, resumeSecByMovie: rs });
+        get()._updateSpecials();
+        get()._recompute();
+      },
+
       clearResume: () => {
         set({ watchProgress: {} });
         const g = get() as any;
@@ -284,6 +300,8 @@ export const useMoviesStore = create<MoviesStore>()(
         const candidates = ext !== 'm3u8' ? [hlsUrl] : [];
 
         usePlayerStore.getState().setSeriesContext(null);
+        const savedSec = get().resumeSecByMovie[id] ?? 0;
+        usePlayerStore.getState().setResumeSec(savedSec > 10 ? savedSec : 0);
         const savedProgress = get().watchProgress[id] ?? 0;
         usePlayerStore.getState().setResumeRatio(savedProgress > 0.001 && savedProgress < 0.95 ? savedProgress : 0);
 
@@ -360,6 +378,7 @@ export const useMoviesStore = create<MoviesStore>()(
       partialize: (s) => ({
         favoriteIds: s.favoriteIds,
         watchProgress: s.watchProgress,
+        resumeSecByMovie: s.resumeSecByMovie,
         hiddenCategoryIds: s.hiddenCategoryIds,
         sortBy: s.sortBy,
         activeCategory: s.activeCategory,
