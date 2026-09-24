@@ -3,7 +3,7 @@ import { Clipboard } from '@capacitor/clipboard';
 // Step: 'select' → 'cloud' | 'm3u' | 'xtream' → 'syncing'
 // Aynı zamanda PlaylistsScreen'in "empty state" geçişini tetikler.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation';
 import { useTranslation } from 'react-i18next';
 import { FocusableInput } from '@/components/common/FocusableInput';
@@ -251,6 +251,18 @@ function SelectStep({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const hasSources = useSourceStore((s) => s.sources.length > 0);
+
+  useEffect(() => {
+    // Se ja existem listas, rola direto pros cards (pula o hero "Ola.")
+    if (hasSources && cardsRef.current) {
+      setTimeout(() => {
+        cardsRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }, 100);
+    }
+  }, [hasSources]);
+
   return (
     <div className="flex flex-col items-center justify-start h-full overflow-y-auto px-4 py-8">
       {/* ZUI Logo */}
