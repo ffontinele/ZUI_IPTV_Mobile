@@ -130,12 +130,23 @@ export default function App() {
         if (btn) btn.click();
         return;
       }
+      // 1. Modais globais: fecha
       if (st.modalOpen) { st.closeModal(); return; }
+      // 2. Modal de filme aberto: fecha
       const ms = useMoviesStore.getState();
       if (ms.detailsMovieId) { ms.closeMovieDetails(); return; }
+      // 3. Modal de serie aberto: fecha
       const ss = useSeriesStore.getState();
       if (ss.detailsSeriesId) { ss.closeSeriesDetails(); return; }
-      if (st.goBack()) return;
+      // 4. Player: nao faz nada aqui (o plugin nativo ja trata a saida)
+      if (st.currentScreen === 'player') return;
+      // 5. NOVA REGRA: qualquer tela que nao seja Home, volta pra Home
+      //    (Recentes, Favoritos, Downloads, Playlists, EPG, Config, etc -> Home)
+      if (st.currentScreen !== 'home') {
+        st.navigate('home');
+        return;
+      }
+      // 6. Ja esta em Home: abre modal de sair do app
       st.openModal('exit');
     };
     window.addEventListener('keydown', onKey);
