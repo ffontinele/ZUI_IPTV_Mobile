@@ -68,7 +68,17 @@ export function DownloadsScreen() {
       <div className="p-4 pb-6 flex flex-col gap-3 max-w-3xl mx-auto">
         <header>
           <p className="text-[11px] uppercase tracking-[0.2em] text-[#E8B567] mb-1">Biblioteca local</p>
-          <h1 className="text-2xl font-bold text-white">Downloads</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white flex-1">Downloads</h1>
+            <button
+              onClick={() => {
+                const on = localStorage.getItem('zui-native-player') === '1';
+                localStorage.setItem('zui-native-player', on ? '0' : '1');
+                showToast(on ? '🧪 Player experimental DESLIGADO' : '🧪 Player experimental LIGADO — reinicie o app');
+              }}
+              className="px-3 py-1.5 rounded-full bg-white/10 text-sm"
+            >🧪</button>
+          </div>
           <p className="text-xs text-text-secondary mt-1">{items.length} item(ns) · salvos em Documents/</p>
           {items.length > 0 && (
             <button onClick={clearAll} className="mt-2 px-3.5 py-2 rounded-full bg-red-500/10 text-red-300 text-xs font-semibold">🗑 Excluir todos</button>
