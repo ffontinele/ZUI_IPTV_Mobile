@@ -24,7 +24,7 @@ export function HomeScreen() {
   const recentIds = usePlaylistStore((s) => s.recentIds);
   const allMovies = useMoviesStore((s) => s.allMovies);
   const movieProgress = useMoviesStore((s) => s.watchProgress);
-  const playMovie = useMoviesStore((s) => s.playMovie);
+  const openMovieDetails = useMoviesStore((s) => s.openMovieDetails);
   const allSeries = useSeriesStore((s) => s.allSeries);
   const currentEpisode = useSeriesStore((s) => s.currentEpisode);
   const openSeriesDetails = useSeriesStore((s) => s.openSeriesDetails);
@@ -117,7 +117,7 @@ export function HomeScreen() {
           <h2 className="text-xs uppercase tracking-wider text-text-muted mb-2">🎬 Continuar assistindo</h2>
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {resumeMovies.map((m) => (
-              <button key={m.id} onClick={() => playMovie(m.id)} className="shrink-0 w-28 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
+              <button key={m.id} onClick={() => openMovieDetails(m.id)} className="shrink-0 w-28 rounded-lg overflow-hidden bg-bg-elevated border border-border-subtle text-left active:bg-bg-hover">
                 <div className="aspect-[2/3] bg-bg-hover">
                   {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>}
                 </div>

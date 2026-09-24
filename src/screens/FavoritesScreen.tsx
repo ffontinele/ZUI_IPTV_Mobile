@@ -24,7 +24,7 @@ export function FavoritesScreen() {
   const allMovies = useMoviesStore((s) => s.allMovies);
   const favMovieIds = useMoviesStore((s) => s.favoriteIds);
   const toggleMovieFav = useMoviesStore((s) => s.toggleFavorite);
-  const playMovie = useMoviesStore((s) => s.playMovie);
+  const openMovieDetails = useMoviesStore((s) => s.openMovieDetails);
 
   const allSeries = useSeriesStore((s) => s.allSeries);
   const watchlistIds = useSeriesStore((s) => s.watchlistIds);
@@ -83,7 +83,7 @@ export function FavoritesScreen() {
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3">
             {favMovies.map((m) => (
               <div key={m.id} className="relative rounded-lg overflow-hidden bg-bg-elevated">
-                <button onClick={() => playMovie(m.id)} className="w-full">
+                <button onClick={() => openMovieDetails(m.id)} className="w-full">
                   <div className="aspect-[2/3] bg-bg-hover">
                     {m.posterUrl ? <img src={m.posterUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">🎬</div>}
                   </div>
