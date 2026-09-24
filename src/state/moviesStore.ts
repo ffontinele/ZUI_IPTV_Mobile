@@ -94,6 +94,7 @@ type MoviesStore = {
   categories: MovieCategory[];
   activeCategory: string;
   detailsMovieId: string | null;
+  reopenMovieId: string | null;
   favoriteIds: string[];
   watchProgress: Record<string, number>;   // 0–1
   resumeSecByMovie: Record<string, number>;
@@ -120,7 +121,7 @@ type MoviesStore = {
   clearFavorites: () => void;
   toggleHiddenCategory: (id: string) => void;
   fetchSynopsis: (movieId: string) => Promise<void>;
-  playMovie: (id: string) => void;
+  playMovie: (id: string, opts?: { fromModal?: boolean }) => void;
   openMovieDetails: (id: string) => void;
   closeMovieDetails: () => void;
 
@@ -139,6 +140,7 @@ export const useMoviesStore = create<MoviesStore>()(
       categories: [],
       activeCategory: '',
       detailsMovieId: null,
+      reopenMovieId: null,
       favoriteIds: [],
       watchProgress: {},
       resumeSecByMovie: {},
@@ -283,9 +285,10 @@ export const useMoviesStore = create<MoviesStore>()(
 
       // ── Playback ────────────────────────────────────────────────────────
 
-      playMovie: (id) => {
+      playMovie: (id, opts) => {
         const movie = get().allMovies.find(m => m.id === id);
         if (!movie) return;
+        set({ reopenMovieId: opts?.fromModal ? id : null });
 
         const creds = getXtreamCreds();
         if (!creds) return;

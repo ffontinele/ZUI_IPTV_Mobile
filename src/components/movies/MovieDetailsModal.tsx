@@ -42,13 +42,13 @@ export function MovieDetailsModal() {
 
   const handlePlay = () => {
     closeMovieDetails();
-    playMovie(movie.id);
+    playMovie(movie.id, { fromModal: true });
   };
 
   const handleFromStart = () => {
     useMoviesStore.getState().clearMovieResume(movie.id);
     closeMovieDetails();
-    playMovie(movie.id);
+    playMovie(movie.id, { fromModal: true });
   };
 
   const handleDownload = () => {

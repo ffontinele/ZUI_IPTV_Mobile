@@ -390,7 +390,7 @@ export const useSeriesStore = create<SeriesStore>()(
       },
 
       playEpisode: (episode, seriesTitle, seasonKey) => {
-        if (get().detailsSeriesId) set({ reopenSeriesId: get().detailsSeriesId, reopenSeason: get().detailsActiveSeason ?? null });
+        set({ reopenSeriesId: get().detailsSeriesId, reopenSeason: get().detailsSeriesId ? (get().detailsActiveSeason ?? null) : null });
         const creds = getXtreamCreds();
         if (!creds) return;
 

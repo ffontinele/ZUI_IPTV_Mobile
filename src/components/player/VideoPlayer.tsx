@@ -156,15 +156,17 @@ export function VideoPlayer() {
         if (cancelled) return;
         savePos(res?.position ?? 0, res?.duration ?? 0);
         usePlayerStore.getState().setResumeSec(0);
-        const dest = useUIStore.getState().lastMainScreen;
-        navigate(dest);
-        // Reabre o modal de onde o video foi iniciado (pilha player->modal->tela)
-        const ctxNow = usePlayerStore.getState().seriesContext;
-        if (currentSource.id.startsWith('series-') && ctxNow?.seriesId) {
-          useSeriesStore.getState().setActiveSeason(ctxNow.seriesId, ctxNow.seasonKey);
-          void useSeriesStore.getState().openSeriesDetails(ctxNow.seriesId);
-        } else if (currentSource.id.startsWith('vod-')) {
-          useMoviesStore.getState().openMovieDetails(currentSource.id.replace('vod-', ''));
+        // Volta pra tela DE ONDE o player foi aberto (pilha real do history),
+        // nao pelo lastMainScreen (que nao inclui Recentes/Favoritos/Downloads)
+        const wentBack = useUIStore.getState().goBack();
+        if (!wentBack) navigate(useUIStore.getState().lastMainScreen);
+        // Reabre o modal SOMENTE se o video foi iniciado dentro de um modal
+        const rsId = useSeriesStore.getState().reopenSeriesId;
+        const rmId = useMoviesStore.getState().reopenMovieId;
+        if (currentSource.id.startsWith('series-') && rsId) {
+          void useSeriesStore.getState().openSeriesDetails(rsId);
+        } else if (currentSource.id.startsWith('vod-') && rmId) {
+          useMoviesStore.getState().openMovieDetails(rmId);
         }
       } catch {
         if (!cancelled) setUseJeep(true);
