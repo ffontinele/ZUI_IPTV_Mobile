@@ -120,6 +120,10 @@ class PlayerActivity : Activity() {
     fun switchUrl(url: String, newTitle: String?) {
         try {
             val p = player ?: return
+            resumedYet = true   // impede o listener STATE_READY de seekar resume velho
+            resumeSec = 0
+            resumeRatio = 0.0
+            p.seekToDefaultPosition()   // garante comeco do zero
             p.setMediaItem(MediaItem.fromUri(url))
             p.prepare()
             p.playWhenReady = true

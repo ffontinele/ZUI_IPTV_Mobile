@@ -31,7 +31,7 @@ export function RecentsScreen() {
 
   const resumeMovies = useMemo(
     () => Object.entries(movieProgress)
-      .filter(([, p]) => p > 0.02 && p < 0.98)
+      .filter(([, p]) => p > 0.001 && p < 0.98)
       .map(([id]) => allMovies.find((m) => m.id === id))
       .filter(Boolean) as any[],
     [movieProgress, allMovies]

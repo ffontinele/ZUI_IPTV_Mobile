@@ -174,6 +174,7 @@ export function VideoPlayer() {
       const sn = String(Number(ctx.seasonKey)).padStart(2, '0');
       const en = String(ep.episode_num).padStart(2, '0');
       st.setSeriesContext({ ...ctx, episodeIndex: idx });
+      st.setResumeSec(0);
       useSeriesStore.getState().setCurrentEpisode(ctx.seriesId, { season: ctx.seasonKey, episode: ep.episode_num, title: ep.title ?? '', remaining: '', resumeSec: 0 });
       void NativePlayer.switchUrl({ url, title: `${ctx.seriesTitle} · S${sn}·E${en}` });
     });

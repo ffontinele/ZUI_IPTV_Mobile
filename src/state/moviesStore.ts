@@ -285,7 +285,7 @@ export const useMoviesStore = create<MoviesStore>()(
 
         usePlayerStore.getState().setSeriesContext(null);
         const savedProgress = get().watchProgress[id] ?? 0;
-        usePlayerStore.getState().setResumeRatio(savedProgress > 0.02 && savedProgress < 0.95 ? savedProgress : 0);
+        usePlayerStore.getState().setResumeRatio(savedProgress > 0.001 && savedProgress < 0.95 ? savedProgress : 0);
 
         usePlayerStore.getState().setSource({
           id: `vod-${id}`,
