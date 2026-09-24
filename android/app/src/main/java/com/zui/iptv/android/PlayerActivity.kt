@@ -89,10 +89,12 @@ class PlayerActivity : Activity() {
     }
 
     fun switchUrl(url: String) {
-        val p = player ?: return
-        p.setMediaItem(MediaItem.fromUri(url))
-        p.prepare()
-        p.playWhenReady = true
+        try {
+            val p = player ?: return
+            p.setMediaItem(MediaItem.fromUri(url))
+            p.prepare()
+            p.playWhenReady = true
+        } catch (_: Exception) { /* nunca crasha */ }
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
