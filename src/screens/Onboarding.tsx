@@ -4,7 +4,6 @@ import { Clipboard } from '@capacitor/clipboard';
 // Aynı zamanda PlaylistsScreen'in "empty state" geçişini tetikler.
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-let __lastBackAt = 0; // debounce global de BACK (evento dispara 2x)
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation';
 import { useTranslation } from 'react-i18next';
 import { FocusableInput } from '@/components/common/FocusableInput';
@@ -658,25 +657,29 @@ export function Onboarding() {
   }, [step, setFocus]);
 
   // BACK tuşu — capture phase: her zaman bizim handler'ımız kazanır
+  // BACK via protocolo backHandler (App consulta ANTES de tudo) — mesmo metodo das Configurações.
+  // Um UNICO handler decide: opcao->cards, cards->origem(Listas). Sem duplo goBack.
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.keyCode !== 461 && e.keyCode !== 27) return;
-      const __now = Date.now();
-      if (__now - __lastBackAt < 400) return; // ignora 2o evento do mesmo aperto
-      __lastBackAt = __now;
-      e.preventDefault();
-      e.stopImmediatePropagation(); // bloqueia tb listeners do window (App) -> evita duplo back
-      if (step === 'syncing') return; // sync sırasında BACK yasak
-      if (step === 'select') {
-        if (!useUIStore.getState().goBack()) navigate('home'); // select'ten BACK → origem (Listas) ou Home
-      } else {
-        setStep('select'); // diğer steplerden BACK → select
-        setSyncError(null);
-      }
+    const handler = () => {
+      if (step === 'syncing') return true; // sync durante: BACK bloqueado
+      if (step !== 'select') { setStep('select'); setSyncError(null); return true; }
+      if (!useUIStore.getState().goBack()) navigate('home');
+      return true;
     };
-    window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
+    useUIStore.getState().setBackHandler(handler);
+    return () => { useUIStore.getState().setBackHandler(null); };
   }, [step, navigate]);
+
+  // So impede o RemoteRouter de engolir o BACK (sem logica de navegacao aqui)
+  useEffect(() => {
+    const swallow = (e: KeyboardEvent) => {
+      if (e.keyCode !== 461 && e.keyCode !== 27) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    window.addEventListener('keydown', swallow, true);
+    return () => window.removeEventListener('keydown', swallow, true);
+  }, []);
 
   // Başarı sonrası ortak akış: tüm kanalları yükle → Anasayfa
   const handleSuccess = useCallback(async () => {
