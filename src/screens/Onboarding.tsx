@@ -651,10 +651,10 @@ export function Onboarding() {
     const handler = (e: KeyboardEvent) => {
       if (e.keyCode !== 461 && e.keyCode !== 27) return;
       e.preventDefault();
-      e.stopPropagation(); // RemoteRouter'ın "onboarding: break" yutmasını engelle
+      e.stopImmediatePropagation(); // bloqueia tb listeners do window (App) -> evita duplo back
       if (step === 'syncing') return; // sync sırasında BACK yasak
       if (step === 'select') {
-        navigate('home'); // select'ten BACK → Anasayfa
+        if (!useUIStore.getState().goBack()) navigate('home'); // select'ten BACK → origem (Listas) ou Home
       } else {
         setStep('select'); // diğer steplerden BACK → select
         setSyncError(null);
@@ -729,7 +729,7 @@ export function Onboarding() {
               setSyncError(null);
               setStep(method);
             }}
-            onBack={() => navigate('home')}
+            onBack={() => { if (!useUIStore.getState().goBack()) navigate('home'); }}
           />
         )}
 
