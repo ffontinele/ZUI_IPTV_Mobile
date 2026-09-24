@@ -31,6 +31,7 @@ class NativePlayerPlugin : Plugin() {
                 putExtra("url", call.getString("url") ?: "")
                 putExtra("title", call.getString("title") ?: "")
                 putExtra("resumeSec", (call.getDouble("resumeSec") ?: 0.0).toLong())
+                putExtra("resumeRatio", call.getDouble("resumeRatio") ?: 0.0)
                 putExtra("hasSeries", call.getBoolean("hasSeries") ?: false)
             }
             startActivityForResult(call, intent, "onPlayerResult")

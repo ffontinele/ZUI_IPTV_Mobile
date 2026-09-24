@@ -129,14 +129,21 @@ export function VideoPlayer() {
     const resume = st0.resumeSec > 10 ? st0.resumeSec : 0;
     const savePos = (pos: number, dur: number) => {
       if (!dur || !isFinite(dur)) return;
+      if (pos < 10) return; // so salva apos 10s (evita lixo e nao some dos Recentes)
       const ratio = pos / dur;
       const id = currentSource.id;
       if (id.startsWith('series-')) {
         const ctx = usePlayerStore.getState().seriesContext;
         if (ctx) {
           useSeriesStore.getState().setWatchProgress(ctx.seriesId, ratio);
-          const ce = useSeriesStore.getState().currentEpisode[ctx.seriesId];
-          if (ce) useSeriesStore.getState().setCurrentEpisode(ctx.seriesId, { ...ce, resumeSec: Math.floor(pos) });
+          const ep = ctx.allEpisodes?.[ctx.episodeIndex];
+          useSeriesStore.getState().setCurrentEpisode(ctx.seriesId, {
+            season: ctx.seasonKey,
+            episode: ep?.episode_num ?? 0,
+            title: ep?.title ?? '',
+            remaining: '',
+            resumeSec: Math.floor(pos),
+          });
         }
       } else if (id.startsWith('vod-')) {
         useMoviesStore.getState().setWatchProgress(id.replace('vod-', ''), ratio);
@@ -144,7 +151,7 @@ export function VideoPlayer() {
     };
     (async () => {
       try {
-        const res = await NativePlayer.play({ url: currentSource.url, title: currentSource.name, resumeSec: resume, hasSeries: !!st0.seriesContext });
+        const res = await NativePlayer.play({ url: currentSource.url, title: currentSource.name, resumeSec: resume, resumeRatio: st0.resumeRatio, hasSeries: !!st0.seriesContext });
         if (cancelled) return;
         savePos(res?.position ?? 0, res?.duration ?? 0);
         usePlayerStore.getState().setResumeSec(0);

@@ -26,6 +26,9 @@ class PlayerActivity : Activity() {
     private var titleView: TextView? = null
     private val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var progressRunnable: Runnable? = null
+    private var resumeSec = 0L
+    private var resumeRatio = 0.0
+    private var resumedYet = false
 
     companion object { var instance: PlayerActivity? = null }
 
@@ -81,10 +84,20 @@ class PlayerActivity : Activity() {
             val p = ExoPlayer.Builder(this).build()
             player = p
             playerView.player = p
+            resumeSec = intent.getLongExtra("resumeSec", 0)
+            resumeRatio = intent.getDoubleExtra("resumeRatio", 0.0)
             p.setMediaItem(MediaItem.fromUri(intent.getStringExtra("url") ?: ""))
             p.prepare()
-            val rs = intent.getLongExtra("resumeSec", 0)
-            if (rs > 0) p.seekTo(rs * 1000)
+            p.addListener(object : androidx.media3.common.Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    if (state == androidx.media3.common.Player.STATE_READY && !resumedYet) {
+                        resumedYet = true
+                        val dur = p.duration
+                        if (resumeSec > 0) p.seekTo(resumeSec * 1000)
+                        else if (resumeRatio > 0.02 && resumeRatio < 0.95 && dur > 0) p.seekTo((resumeRatio * dur).toLong())
+                    }
+                }
+            })
             p.playWhenReady = true
             progressRunnable = object : Runnable {
                 override fun run() {
