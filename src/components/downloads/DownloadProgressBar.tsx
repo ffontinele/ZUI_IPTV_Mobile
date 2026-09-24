@@ -14,10 +14,10 @@ export function DownloadProgressBar() {
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const active = items.find((i) => i.status === 'downloading') ?? items.find((i) => i.status === 'queued' && isRunning(i.id));
   const item = active ?? items.find((i) => i.status === 'queued');
-  if (!item) return null;
 
   useEffect(() => {
     if (autoCloseTimer.current) { clearTimeout(autoCloseTimer.current); autoCloseTimer.current = null; }
+    if (!item) { setHidden(false); return; }
     if (item.status === 'done') {
       autoCloseTimer.current = window.setTimeout(() => setHidden(true), 3000);
     } else if (item.status === 'error') {
@@ -26,9 +26,10 @@ export function DownloadProgressBar() {
       setHidden(false);
     }
     return () => { if (autoCloseTimer.current) clearTimeout(autoCloseTimer.current); };
-  }, [item.status, item.id]);
-  if (hidden) return null;
+  }, [item?.status, item?.id]);
 
+  if (!item) return null;
+  if (hidden) return null;
   const progress = item.progress ?? 0;
 
   if (min) {

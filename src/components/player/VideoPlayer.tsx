@@ -1,17 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { CapacitorVideoPlayer } from 'capacitor-video-player';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { useFocusable } from '@noriginmedia/norigin-spatial-navigation';
 import { usePlayerStore } from '@/state/playerStore';
-import { useSeriesStore } from '@/state/seriesStore';
-import { useMoviesStore } from '@/state/moviesStore';
-import { NativePlayer } from '@/services/nativePlayer';
-import { buildSeriesEpisodeUrl } from '@/services/series.service';
 import { useUIStore } from '@/state/uiStore';
 import { useExoWatchProgress } from '@/hooks/useExoWatchProgress';
 import { ErrorOverlay } from './ErrorOverlay';
-
-import { Capacitor } from '@capacitor/core';
 import { Spinner } from '@/components/common/Spinner';
 import type { PlaybackAttempt } from '@/types/player';
 
@@ -25,9 +19,6 @@ export function VideoPlayer() {
   const setError = usePlayerStore((s) => s.setError);
 
   const navigate = useUIStore((s) => s.navigate);
-  const [useJeep, setUseJeep] = useState(false);
-  const useJeepRef = useRef(useJeep);
-  useJeepRef.current = useJeep;
   const lastMainScreen = useUIStore((s) => s.lastMainScreen);
 
   const { pause, resume } = useFocusable({ focusKey: 'PLAYER_ROOT' });
@@ -39,7 +30,6 @@ export function VideoPlayer() {
 
   useEffect(() => {
     if (!currentSource) return;
-    if (!useJeepRef.current) return;
     setState('loading');
     let cancelled = false;
     const listeners: PluginListenerHandle[] = [];
@@ -120,62 +110,9 @@ export function VideoPlayer() {
       CapacitorVideoPlayer.stopAllPlayers().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSource, useJeep]);
+  }, [currentSource]);
 
   useExoWatchProgress(true);
-
-  useEffect(() => {
-    if (!currentSource || useJeep) return;
-    if (!Capacitor.isNativePlatform()) return;
-    let cancelled = false;
-    const st0 = usePlayerStore.getState();
-    const resume = st0.resumeSec > 10 ? st0.resumeSec : 0;
-    const savePos = (pos: number, dur: number) => {
-      if (!dur || !isFinite(dur)) return;
-      const ratio = pos / dur;
-      const id = currentSource.id;
-      if (id.startsWith('series-')) {
-        const ctx = usePlayerStore.getState().seriesContext;
-        if (ctx) {
-          useSeriesStore.getState().setWatchProgress(ctx.seriesId, ratio);
-          const ce = useSeriesStore.getState().currentEpisode[ctx.seriesId];
-          if (ce) useSeriesStore.getState().setCurrentEpisode(ctx.seriesId, { ...ce, resumeSec: Math.floor(pos) });
-        }
-      } else if (id.startsWith('vod-')) {
-        useMoviesStore.getState().setWatchProgress(id.replace('vod-', ''), ratio);
-      }
-    };
-    (async () => {
-      try {
-        const res = await NativePlayer.play({ url: currentSource.url, title: currentSource.name, resumeSec: resume, hasSeries: !!st0.seriesContext });
-        if (cancelled) return;
-        savePos(res?.position ?? 0, res?.duration ?? 0);
-        usePlayerStore.getState().setResumeSec(0);
-        navigate(lastMainScreen);
-      } catch {
-        if (!cancelled) setUseJeep(true);
-      }
-    })();
-    const sub = NativePlayer.addListener('episodeNav', (d: any) => {
-      const st = usePlayerStore.getState();
-      const ctx = st.seriesContext;
-      if (!ctx) return;
-      const idx = ctx.episodeIndex + (d?.dir === 'next' ? 1 : -1);
-      const eps = ctx.allEpisodes ?? [];
-      if (idx < 0 || idx >= eps.length) return;
-      const ep = eps[idx];
-      const creds = (window as any).__ZUI_XTREAM_CREDS;
-      if (!creds) return;
-      const url = buildSeriesEpisodeUrl(creds, ep.id, ep.container_extension);
-      const sn = String(Number(ctx.seasonKey)).padStart(2, '0');
-      const en = String(ep.episode_num).padStart(2, '0');
-      st.setSeriesContext({ ...ctx, episodeIndex: idx });
-      useSeriesStore.getState().setCurrentEpisode(ctx.seriesId, { season: ctx.seasonKey, episode: ep.episode_num, title: ep.title ?? '', remaining: '', resumeSec: 0 });
-      void NativePlayer.switchUrl({ url, title: `${ctx.seriesTitle} · S${sn}·E${en}` });
-    });
-    return () => { cancelled = true; sub.remove(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSource, useJeep]);
 
   const handleBack = () => {
     setError(null);
@@ -188,6 +125,6 @@ export function VideoPlayer() {
       {error && !error.recoverable && (
         <ErrorOverlay message={error.message} attempts={[] as PlaybackAttempt[]} onBack={handleBack} />
       )}
-        </div>
+    </div>
   );
 }
