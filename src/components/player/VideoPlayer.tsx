@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { CapacitorVideoPlayer } from 'capacitor-video-player';
 import { Capacitor } from '@capacitor/core';
 import { useSeriesStore } from '@/state/seriesStore';
 import { useMoviesStore } from '@/state/moviesStore';
-import { NativePlayer, nativePlayerFlag } from '@/services/nativePlayer';
+import { NativePlayer } from '@/services/nativePlayer';
 import { buildSeriesEpisodeUrl } from '@/services/series.service';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { useFocusable } from '@noriginmedia/norigin-spatial-navigation';
@@ -24,7 +24,6 @@ export function VideoPlayer() {
   const setError = usePlayerStore((s) => s.setError);
 
   const navigate = useUIStore((s) => s.navigate);
-  const [useJeep, setUseJeep] = useState(false);
   const lastMainScreen = useUIStore((s) => s.lastMainScreen);
 
   const { pause, resume } = useFocusable({ focusKey: 'PLAYER_ROOT' });
@@ -36,7 +35,7 @@ export function VideoPlayer() {
 
   useEffect(() => {
     if (!currentSource) return;
-    if (!useJeep && nativePlayerFlag() && Capacitor.isNativePlatform()) return;
+    if (Capacitor.isNativePlatform()) return; // player antigo desativado no mobile
     setState('loading');
     let cancelled = false;
     const listeners: PluginListenerHandle[] = [];
@@ -117,13 +116,13 @@ export function VideoPlayer() {
       CapacitorVideoPlayer.stopAllPlayers().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSource, useJeep]);
+  }, [currentSource]);
 
   useExoWatchProgress(true);
 
   useEffect(() => {
-    if (!currentSource || useJeep) return;
-    if (!Capacitor.isNativePlatform() || !nativePlayerFlag()) return;
+    if (!currentSource) return;
+    if (!Capacitor.isNativePlatform()) return;
     let cancelled = false;
     const st0 = usePlayerStore.getState();
     const resume = st0.resumeSec > 10 ? st0.resumeSec : 0;
@@ -169,7 +168,7 @@ export function VideoPlayer() {
           useMoviesStore.getState().openMovieDetails(rmId);
         }
       } catch {
-        if (!cancelled) setUseJeep(true);
+        /* player nativo e o unico no mobile */
       }
     })();
     const sub = NativePlayer.addListener('episodeNav', (d: any) => {
@@ -195,7 +194,7 @@ export function VideoPlayer() {
     });
     return () => { cancelled = true; sub.remove(); subProg.remove(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSource, useJeep]);
+  }, [currentSource]);
 
   const handleBack = () => {
     setError(null);
