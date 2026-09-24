@@ -2,7 +2,6 @@ package com.zui.iptv.android
 
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.ActivityInfo
 import android.media.AudioManager
 import android.os.Bundle
 import android.view.Gravity
@@ -35,7 +34,6 @@ class PlayerActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         instance = this
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         try {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             audio = getSystemService(AUDIO_SERVICE) as AudioManager
