@@ -15,6 +15,7 @@ import androidx.media3.exoplayer.ExoPlayer
 class TrackSelector(
     private val activity: Activity,
     private val root: FrameLayout,
+    private val openSettings: () -> Unit = {},
     private val playerProvider: () -> ExoPlayer?
 ) {
     var panelOpen = false
@@ -217,6 +218,15 @@ class TrackSelector(
         close.textSize = 20f
         close.setOnClickListener { closePanel() }
         header.addView(title)
+        if (forSubtitles) {
+            val gear = TextView(activity)
+            gear.text = " \u2699 "
+            gear.setTextColor(0xFFFFFFFF.toInt())
+            gear.textSize = 20f
+            gear.setPadding(8, 0, 24, 0)
+            gear.setOnClickListener { closePanel(); openSettings() }
+            header.addView(gear)
+        }
         header.addView(close)
         card.addView(header)
 
