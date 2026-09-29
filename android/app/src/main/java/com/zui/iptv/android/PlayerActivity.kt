@@ -133,6 +133,7 @@ class PlayerActivity : Activity() {
     fun switchUrl(url: String, newTitle: String?) {
         try {
             trackSelector?.closePanel()
+            trackSelector?.noteMediaChanged()
             val p = player ?: return
             resumedYet = true   // impede o listener STATE_READY de seekar resume velho
             resumeSec = 0

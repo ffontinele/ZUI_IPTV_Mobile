@@ -25,6 +25,79 @@ class TrackSelector(
     private var overlay: FrameLayout? = null
     private var audioGroups: List<Tracks.Group> = emptyList()
     private var textGroups: List<Tracks.Group> = emptyList()
+    private var pendingAutoSelect = true
+
+    companion object {
+        private const val PREFS = "zui_track_prefs"
+        private const val KEY_AUDIO_LANG = "audio_lang"
+        private const val KEY_SUB_LANG = "sub_lang"
+
+        private val LANG_NAMES = mapOf(
+            "en" to "English", "en-us" to "English (US)", "en-gb" to "English (UK)",
+            "ja" to "Japanese", "pt" to "Portuguese",
+            "pt-br" to "Portuguese (Brazil)", "pt-pt" to "Portuguese (Portugal)",
+            "es" to "Spanish", "es-419" to "Spanish (Latin America)", "es-mx" to "Spanish (Mexico)",
+            "fr" to "French", "fr-ca" to "French (Canada)", "de" to "German", "it" to "Italian",
+            "ru" to "Russian", "ko" to "Korean", "zh" to "Chinese",
+            "zh-cn" to "Chinese (Simplified)", "zh-tw" to "Chinese (Traditional)",
+            "ar" to "Arabic", "tr" to "Turkish", "pl" to "Polish", "ms" to "Malay",
+            "id" to "Indonesian", "th" to "Thai", "vi" to "Vietnamese", "hi" to "Hindi",
+            "nl" to "Dutch", "sv" to "Swedish", "no" to "Norwegian", "da" to "Danish",
+            "fi" to "Finnish", "el" to "Greek", "he" to "Hebrew", "fa" to "Persian",
+            "uk" to "Ukrainian", "cs" to "Czech", "hu" to "Hungarian", "ro" to "Romanian",
+            "bg" to "Bulgarian", "hr" to "Croatian", "sr" to "Serbian", "sk" to "Slovak",
+            "ca" to "Catalan", "fil" to "Filipino", "bn" to "Bengali", "ta" to "Tamil",
+            "te" to "Telugu", "ur" to "Urdu", "sw" to "Swahili", "af" to "Afrikaans",
+            "sq" to "Albanian", "et" to "Estonian", "lv" to "Latvian", "lt" to "Lithuanian",
+            "sl" to "Slovenian", "mk" to "Macedonian", "is" to "Icelandic"
+        )
+
+        // ISO 639-2 (3 letras, comum em MKV) -> ISO 639-1 (2 letras)
+        private val ISO3 = mapOf(
+            "por" to "pt", "eng" to "en", "spa" to "es", "fre" to "fr", "fra" to "fr",
+            "ger" to "de", "deu" to "de", "jpn" to "ja", "kor" to "ko", "rus" to "ru",
+            "ita" to "it", "chi" to "zh", "zho" to "zh", "pol" to "pl", "may" to "ms",
+            "msa" to "ms", "ind" to "id", "tha" to "th", "vie" to "vi", "hin" to "hi",
+            "tur" to "tr", "ara" to "ar", "ukr" to "uk", "cze" to "cs", "ces" to "cs",
+            "hun" to "hu", "ron" to "ro", "rum" to "ro", "bul" to "bg", "hrv" to "hr",
+            "srp" to "sr", "slk" to "sk", "slo" to "sl", "cat" to "ca", "nld" to "nl",
+            "dut" to "nl", "swe" to "sv", "nor" to "no", "dan" to "da", "fin" to "fi",
+            "ell" to "el", "gre" to "el", "heb" to "he", "fas" to "fa", "per" to "fa",
+            "tgl" to "fil", "fil" to "fil"
+        )
+
+        private fun langName(code: String): String? {
+            LANG_NAMES[code]?.let { return it }
+            val base = code.substringBefore('-')
+            val region = code.substringAfter('-', "").uppercase()
+            val baseName = LANG_NAMES[base] ?: return null
+            return if (region.isEmpty()) baseName else "$baseName ($region)"
+        }
+
+        /** Normaliza pt-BR / pt_BR / por / pt-br -> "pt-br" */
+        private fun langKey(lang: String?): String? {
+            val l = lang?.lowercase()?.replace("_", "-") ?: return null
+            val base = l.substringBefore('-')
+            val two = ISO3[base] ?: base
+            val region = l.substringAfter('-', "")
+            return if (region.isEmpty()) two else "$two-$region"
+        }
+
+        /** Prioridade: pt-br (3) > pt (2) > qualquer pt-* (1). Generico: exato (2) > regiao (1). */
+        private fun score(key: String?, wanted: String): Int {
+            if (key == null) return -1
+            return if (wanted == "pt") when {
+                key == "pt-br" -> 3
+                key == "pt" -> 2
+                key.startsWith("pt-") -> 1
+                else -> -1
+            } else when {
+                key == wanted -> 2
+                key.startsWith("$wanted-") -> 1
+                else -> -1
+            }
+        }
+    }
 
     fun attachTopButtons() {
         val bar = LinearLayout(activity)
@@ -54,14 +127,67 @@ class TrackSelector(
         return tv
     }
 
+    fun noteMediaChanged() {
+        pendingAutoSelect = true
+    }
+
     fun onTracksChanged(tracks: Tracks) {
         audioGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
         textGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
         btnAudio?.visibility = if (audioGroups.isNotEmpty()) View.VISIBLE else View.GONE
         btnSub?.visibility = if (textGroups.isNotEmpty()) View.VISIBLE else View.GONE
         if (panelOpen) closePanel()
+        if (pendingAutoSelect && (audioGroups.isNotEmpty() || textGroups.isNotEmpty())) {
+            pendingAutoSelect = false
+            applyPreferences()
+        }
     }
 
+    // ---------- auto-selecao por preferencia ----------
+    private fun applyPreferences() {
+        val prefs = activity.getSharedPreferences(PREFS, 0)
+
+        when (val a = prefs.getString(KEY_AUDIO_LANG, "pt")) {
+            "none" -> setDisabled(C.TRACK_TYPE_AUDIO, true)
+            else -> selectPreferred(audioGroups, C.TRACK_TYPE_AUDIO, a!!)
+            // sem PT no audio: mantem o default do player (audio original)
+        }
+
+        when (val s = prefs.getString(KEY_SUB_LANG, "pt")) {
+            "none" -> setDisabled(C.TRACK_TYPE_TEXT, true)
+            else -> if (!selectPreferred(textGroups, C.TRACK_TYPE_TEXT, s!!)) {
+                setDisabled(C.TRACK_TYPE_TEXT, true) // sem PT: legenda desligada
+            }
+        }
+    }
+
+    private fun selectPreferred(groups: List<Tracks.Group>, type: Int, wanted: String): Boolean {
+        val p = playerProvider() ?: return false
+        var bestScore = 0
+        var bestGroup: Tracks.Group? = null
+        var bestIndex = -1
+        groups.forEach { group ->
+            for (i in 0 until group.length) {
+                val key = langKey(group.getTrackFormat(i).language)
+                val sc = score(key, wanted)
+                if (sc > bestScore) {
+                    bestScore = sc
+                    bestGroup = group
+                    bestIndex = i
+                }
+            }
+        }
+        val g = bestGroup ?: return false
+        selectTrack(g, bestIndex, type)
+        return true
+    }
+
+    private fun savePref(type: Int, value: String) {
+        val key = if (type == C.TRACK_TYPE_AUDIO) KEY_AUDIO_LANG else KEY_SUB_LANG
+        activity.getSharedPreferences(PREFS, 0).edit().putString(key, value).apply()
+    }
+
+    // ---------- painel ----------
     fun openPanel(forSubtitles: Boolean) {
         if (panelOpen) return
         val groups = if (forSubtitles) textGroups else audioGroups
@@ -103,14 +229,17 @@ class TrackSelector(
 
         list.addView(optionRow("Disable", disabled) {
             setDisabled(type, true)
+            savePref(type, "none")
             closePanel()
         })
 
-        groups.forEach { group ->
+        val labels = buildLabels(groups, forSubtitles)
+        groups.forEachIndexed { gi, group ->
             for (i in 0 until group.length) {
                 val selected = group.isTrackSelected(i)
-                list.addView(optionRow(trackLabel(group, i), selected) {
+                list.addView(optionRow(labels[gi][i], selected) {
                     selectTrack(group, i, type)
+                    savePref(type, langKey(group.getTrackFormat(i).language) ?: "und")
                     closePanel()
                 })
             }
@@ -136,6 +265,25 @@ class TrackSelector(
         panelOpen = false
     }
 
+    /** Nome padronizado: label do arquivo > traducao do idioma > fallback. Repetidos ganham numero. */
+    private fun buildLabels(groups: List<Tracks.Group>, forSubtitles: Boolean): List<List<String>> {
+        val counts = mutableMapOf<String, Int>()
+        return groups.map { group ->
+            (0 until group.length).map { i ->
+                val f = group.getTrackFormat(i)
+                val lang = f.language?.takeIf { it.isNotBlank() && it != "und" }?.lowercase()
+                val langName = lang?.let { langName(it) }
+                val fallback = if (forSubtitles) "Legenda" else "Áudio"
+                var base = f.label?.takeIf { it.isNotBlank() } ?: langName ?: fallback
+                val key = base.lowercase()
+                val n = (counts[key] ?: 0) + 1
+                counts[key] = n
+                if (n > 1) base = "$base $n"
+                base + (lang?.let { " [$it]" } ?: "")
+            }
+        }
+    }
+
     private fun optionRow(label: String, selected: Boolean, onClick: () -> Unit): TextView {
         val tv = TextView(activity)
         tv.text = (if (selected) "\u25cf  " else "\u25cb  ") + label
@@ -144,13 +292,6 @@ class TrackSelector(
         tv.setPadding(16, 22, 16, 22)
         tv.setOnClickListener { onClick() }
         return tv
-    }
-
-    private fun trackLabel(group: Tracks.Group, index: Int): String {
-        val f = group.getTrackFormat(index)
-        val lang = f.language?.takeIf { it.isNotBlank() }?.let { " [$it]" } ?: ""
-        val name = f.label?.takeIf { it.isNotBlank() } ?: "Track ${index + 1}"
-        return name + lang
     }
 
     private fun selectTrack(group: Tracks.Group, index: Int, type: Int) {
