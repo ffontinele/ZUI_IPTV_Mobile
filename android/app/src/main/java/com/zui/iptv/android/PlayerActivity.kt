@@ -12,6 +12,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.getcapacitor.JSObject
@@ -28,6 +29,8 @@ class PlayerActivity : Activity() {
     private var resumeSec = 0L
     private var resumeRatio = 0.0
     private var resumedYet = false
+    private var trackSelector: TrackSelector? = null
+    private var subtitleEngine: SubtitleEngine? = null
 
     companion object { var instance: PlayerActivity? = null }
 
@@ -44,6 +47,7 @@ class PlayerActivity : Activity() {
             val playerView = PlayerView(this)
             playerView.controllerShowTimeoutMs = 3500
             root.addView(playerView, FrameLayout.LayoutParams(-1, -1))
+            trackSelector = TrackSelector(this, root, openSettings = { subtitleEngine?.openSettings() }) { player }.also { it.attachTopButtons() }
 
             val btnBack = TextView(this)
             btnBack.text = " ← "
@@ -91,11 +95,15 @@ class PlayerActivity : Activity() {
             val p = ExoPlayer.Builder(this).build()
             player = p
             playerView.player = p
+            subtitleEngine = SubtitleEngine(this, root, playerView, p)
             resumeSec = intent.getLongExtra("resumeSec", 0)
             resumeRatio = intent.getDoubleExtra("resumeRatio", 0.0)
             p.setMediaItem(MediaItem.fromUri(intent.getStringExtra("url") ?: ""))
             p.prepare()
             p.addListener(object : androidx.media3.common.Player.Listener {
+                override fun onTracksChanged(tracks: Tracks) {
+                    trackSelector?.onTracksChanged(tracks)
+                }
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == androidx.media3.common.Player.STATE_READY && !resumedYet) {
                         resumedYet = true
@@ -126,6 +134,8 @@ class PlayerActivity : Activity() {
 
     fun switchUrl(url: String, newTitle: String?) {
         try {
+            trackSelector?.closePanel()
+            trackSelector?.noteMediaChanged()
             val p = player ?: return
             resumedYet = true   // impede o listener STATE_READY de seekar resume velho
             resumeSec = 0
@@ -144,6 +154,7 @@ class PlayerActivity : Activity() {
     }
 
     private fun gesture(ev: MotionEvent) {
+        if (trackSelector?.panelOpen == true || subtitleEngine?.settingsOpen == true) return
         val w = resources.displayMetrics.widthPixels
         val h = resources.displayMetrics.heightPixels
         val maxVol = audio?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 15
@@ -182,6 +193,7 @@ class PlayerActivity : Activity() {
             val pos = (p.currentPosition / 1000).coerceAtLeast(0)
             val dur = (p.duration / 1000).coerceAtLeast(0)
             setResult(RESULT_OK, Intent().putExtra("position", pos).putExtra("duration", dur))
+            subtitleEngine?.release()
             p.release()
             player = null
         }
