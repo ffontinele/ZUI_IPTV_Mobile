@@ -4,17 +4,20 @@ import android.app.Activity
 import android.graphics.Color
 import android.graphics.Typeface
 import android.view.Gravity
+import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import androidx.media3.ui.CaptionStyleCompat
+import androidx.media3.common.Player
+import androidx.media3.common.text.Cue
 import androidx.media3.ui.PlayerView
 
 class SubtitleEngine(
     private val activity: Activity,
     private val root: FrameLayout,
-    private val playerView: PlayerView
+    playerView: PlayerView,
+    private val player: Player
 ) {
     private val prefs = activity.getSharedPreferences("zui_subtitle_style", 0)
 
@@ -26,6 +29,7 @@ class SubtitleEngine(
     private var bgIdx = prefs.getInt("bg", 1)
     private var shadow = prefs.getBoolean("shadow", true)
 
+    private val subtitleView = TextView(activity)
     private var settingsOverlay: FrameLayout? = null
 
     val settingsOpen: Boolean get() = settingsOverlay != null
@@ -35,19 +39,40 @@ class SubtitleEngine(
             Color.WHITE, Color.BLACK, Color.RED,
             0xFF4CD964.toInt(), Color.YELLOW, Color.CYAN
         )
-        // Fracao da ALTURA da tela (padrao do ExoPlayer = 0.0533)
-        private val SIZES = floatArrayOf(0.040f, 0.0533f, 0.070f, 0.090f)
+        private val SIZES = floatArrayOf(14f, 18f, 22f, 26f)
         private val SIZE_NAMES = arrayOf("Pequeno", "Médio", "Grande", "Enorme")
-        private val PREVIEW_SIZES = floatArrayOf(14f, 18f, 24f, 30f)
         private val OPACITY = floatArrayOf(0.25f, 0.5f, 0.75f, 1f)
         private val OPACITY_NAMES = arrayOf("25%", "50%", "75%", "100%")
         private val BG_NAMES = arrayOf("Sem fundo", "Translúcido", "Sólido")
-        private const val PAD_BOTTOM = 0.08f
-        private const val PAD_TOP = 0.85f
+    }
+
+    private val listener = object : Player.Listener {
+        override fun onCues(cues: List<Cue>) {
+            render(cues)
+        }
     }
 
     init {
+        try { playerView.subtitleView?.visibility = View.GONE } catch (_: Exception) {}
+        subtitleView.gravity = Gravity.CENTER
+        subtitleView.setPadding(28, 10, 28, 10)
+        val lp = FrameLayout.LayoutParams(-2, -2)
+        lp.gravity = gravityFor()
+        lp.topMargin = 24
+        lp.bottomMargin = 110
+        root.addView(subtitleView, lp)
         applyStyle()
+        player.addListener(listener)
+    }
+
+    private fun gravityFor(): Int =
+        if (positionTop) Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        else Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+
+    private fun render(cues: List<Cue>) {
+        val text = cues.joinToString("\n") { it.text?.toString() ?: "" }.trim()
+        subtitleView.text = text
+        subtitleView.visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun fgColor(): Int {
@@ -61,33 +86,25 @@ class SubtitleEngine(
         else -> 0xFF000000.toInt()
     }
 
-    private fun currentStyle(): CaptionStyleCompat = CaptionStyleCompat(
-        fgColor(),
-        bgColor(),
-        Color.TRANSPARENT,
-        if (shadow) CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW else CaptionStyleCompat.EDGE_TYPE_NONE,
-        if (shadow) Color.BLACK else Color.TRANSPARENT,
-        if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-    )
+    private fun styleInto(tv: TextView) {
+        tv.setTextColor(fgColor())
+        tv.textSize = SIZES[sizeIdx]
+        tv.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        tv.setBackgroundColor(bgColor())
+        if (shadow) {
+            tv.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            tv.setShadowLayer(8f, 2f, 2f, Color.BLACK)
+        } else {
+            tv.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
+            tv.setLayerType(View.LAYER_TYPE_NONE, null)
+        }
+    }
 
     private fun applyStyle() {
-        val sv = playerView.subtitleView ?: return
-        try {
-            // Nosso estilo SEMPRE vence o estilo embutido do SSA/ASS/SRT
-            sv.setApplyEmbeddedStyles(false)
-            sv.setApplyEmbeddedFontSizes(false)
-            sv.setStyle(currentStyle())
-            sv.setFractionalTextSize(SIZES[sizeIdx])
-            sv.setBottomPaddingFraction(if (positionTop) PAD_TOP else PAD_BOTTOM)
-            (sv.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
-                lp.gravity = if (positionTop) {
-                    Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                } else {
-                    Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                }
-                sv.layoutParams = lp
-            }
-        } catch (_: Exception) { /* nunca crasha */ }
+        styleInto(subtitleView)
+        val lp = subtitleView.layoutParams as FrameLayout.LayoutParams
+        lp.gravity = gravityFor()
+        subtitleView.layoutParams = lp
     }
 
     private fun save() {
@@ -103,6 +120,8 @@ class SubtitleEngine(
     }
 
     fun release() {
+        try { player.removeListener(listener) } catch (_: Exception) {}
+        root.removeView(subtitleView)
         settingsOverlay?.let { root.removeView(it) }
         settingsOverlay = null
     }
@@ -145,15 +164,7 @@ class SubtitleEngine(
         plp.topMargin = 18
         plp.bottomMargin = 18
         card.addView(preview, plp)
-
-        fun stylePreview() {
-            preview.setTextColor(fgColor())
-            preview.setBackgroundColor(bgColor())
-            preview.textSize = PREVIEW_SIZES[sizeIdx]
-            preview.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-            if (shadow) preview.setShadowLayer(6f, 2f, 2f, Color.BLACK)
-        }
-        stylePreview()
+        styleInto(preview)
 
         val scroll = ScrollView(activity)
         val list = LinearLayout(activity)
@@ -162,7 +173,7 @@ class SubtitleEngine(
         fun refresh() {
             save()
             applyStyle()
-            stylePreview()
+            styleInto(preview)
         }
 
         val rowPos = TextView(activity)

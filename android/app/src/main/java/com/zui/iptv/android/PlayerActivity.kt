@@ -95,7 +95,7 @@ class PlayerActivity : Activity() {
             val p = ExoPlayer.Builder(this).build()
             player = p
             playerView.player = p
-            subtitleEngine = SubtitleEngine(this, root, playerView)
+            subtitleEngine = SubtitleEngine(this, root, playerView, p)
             resumeSec = intent.getLongExtra("resumeSec", 0)
             resumeRatio = intent.getDoubleExtra("resumeRatio", 0.0)
             p.setMediaItem(MediaItem.fromUri(intent.getStringExtra("url") ?: ""))
