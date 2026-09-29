@@ -227,6 +227,25 @@ class TrackSelector(
         val disabled = playerProvider()?.trackSelectionParameters
             ?.disabledTrackTypes?.contains(type) == true
 
+        val ptSelected = groups.any { g ->
+            (0 until g.length).any { i ->
+                g.isTrackSelected(i) && score(langKey(g.getTrackFormat(i).language), "pt") > 0
+            }
+        }
+
+        list.addView(optionRow("★  Padrão (Português)", ptSelected) {
+            if (selectPreferred(groups, type, "pt")) {
+                savePref(type, "pt")
+                closePanel()
+            } else {
+                android.widget.Toast.makeText(
+                    activity,
+                    "Português não encontrado neste vídeo",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+
         list.addView(optionRow("Disable", disabled) {
             setDisabled(type, true)
             savePref(type, "none")
