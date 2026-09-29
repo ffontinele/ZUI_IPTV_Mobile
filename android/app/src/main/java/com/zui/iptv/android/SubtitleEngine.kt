@@ -3,12 +3,11 @@ package com.zui.iptv.android
 import android.app.Activity
 import android.graphics.Color
 import android.graphics.Typeface
-import android.view.View
+import android.view.Gravity
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import androidx.media3.common.Player
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 
@@ -36,50 +35,59 @@ class SubtitleEngine(
             Color.WHITE, Color.BLACK, Color.RED,
             0xFF4CD964.toInt(), Color.YELLOW, Color.CYAN
         )
-        private val SIZES = floatArrayOf(0.6f, 0.8f, 1.0f, 1.3f)
+        // Fracao da ALTURA da tela (padrao do ExoPlayer = 0.0533)
+        private val SIZES = floatArrayOf(0.040f, 0.0533f, 0.070f, 0.090f)
         private val SIZE_NAMES = arrayOf("Pequeno", "Médio", "Grande", "Enorme")
+        private val PREVIEW_SIZES = floatArrayOf(14f, 18f, 24f, 30f)
         private val OPACITY = floatArrayOf(0.25f, 0.5f, 0.75f, 1f)
         private val OPACITY_NAMES = arrayOf("25%", "50%", "75%", "100%")
         private val BG_NAMES = arrayOf("Sem fundo", "Translúcido", "Sólido")
+        private const val PAD_BOTTOM = 0.08f
+        private const val PAD_TOP = 0.85f
     }
 
     init {
         applyStyle()
     }
 
+    private fun fgColor(): Int {
+        val alpha = (OPACITY[opacityIdx] * 255).toInt()
+        return (COLORS[colorIdx] and 0x00FFFFFF) or (alpha shl 24)
+    }
+
+    private fun bgColor(): Int = when (bgIdx) {
+        0 -> Color.TRANSPARENT
+        1 -> 0x66000000
+        else -> 0xFF000000.toInt()
+    }
+
+    private fun currentStyle(): CaptionStyleCompat = CaptionStyleCompat(
+        fgColor(),
+        bgColor(),
+        Color.TRANSPARENT,
+        if (shadow) CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW else CaptionStyleCompat.EDGE_TYPE_NONE,
+        if (shadow) Color.BLACK else Color.TRANSPARENT,
+        if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+    )
+
     private fun applyStyle() {
-        val subtitleView = playerView.subtitleView ?: return
-        
-        val fgColor = COLORS[colorIdx]
-        val bgColor = when (bgIdx) {
-            0 -> Color.TRANSPARENT
-            1 -> 0x66000000
-            else -> 0xFF000000.toInt()
-        }
-        val edgeType = if (shadow) CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW else CaptionStyleCompat.EDGE_TYPE_NONE
-        
-        val style = CaptionStyleCompat(
-            fgColor,
-            bgColor,
-            Color.TRANSPARENT,
-            edgeType,
-            if (shadow) Color.BLACK else Color.TRANSPARENT,
-            if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        )
-        
-        subtitleView.setStyle(style)
-        subtitleView.setFractionalTextSize(SIZES[sizeIdx])
-        
-        // Posicao: ajustar margem do PlayerView para subir/descer a legenda
-        val lp = playerView.layoutParams as FrameLayout.LayoutParams
-        if (positionTop) {
-            lp.topMargin = 120
-            lp.bottomMargin = 0
-        } else {
-            lp.topMargin = 0
-            lp.bottomMargin = 120
-        }
-        playerView.layoutParams = lp
+        val sv = playerView.subtitleView ?: return
+        try {
+            // Nosso estilo SEMPRE vence o estilo embutido do SSA/ASS/SRT
+            sv.setApplyEmbeddedStyles(false)
+            sv.setApplyEmbeddedFontSizes(false)
+            sv.setStyle(currentStyle())
+            sv.setFractionalTextSize(SIZES[sizeIdx])
+            sv.setBottomPaddingFraction(if (positionTop) PAD_TOP else PAD_BOTTOM)
+            (sv.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
+                lp.gravity = if (positionTop) {
+                    Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                } else {
+                    Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                }
+                sv.layoutParams = lp
+            }
+        } catch (_: Exception) { /* nunca crasha */ }
     }
 
     private fun save() {
@@ -99,6 +107,7 @@ class SubtitleEngine(
         settingsOverlay = null
     }
 
+    // ---------------- tela de configuracoes ----------------
     fun openSettings() {
         if (settingsOverlay != null) return
         val ov = FrameLayout(activity)
@@ -129,31 +138,22 @@ class SubtitleEngine(
 
         val preview = TextView(activity)
         preview.text = "Texto de exemplo da legenda"
-        preview.gravity = android.view.Gravity.CENTER
+        preview.gravity = Gravity.CENTER
         preview.setPadding(24, 14, 24, 14)
         val plp = LinearLayout.LayoutParams(-2, -2)
-        plp.gravity = android.view.Gravity.CENTER_HORIZONTAL
+        plp.gravity = Gravity.CENTER_HORIZONTAL
         plp.topMargin = 18
         plp.bottomMargin = 18
         card.addView(preview, plp)
-        
-        val fgColor = COLORS[colorIdx]
-        val bgColor = when (bgIdx) {
-            0 -> Color.TRANSPARENT
-            1 -> 0x66000000
-            else -> 0xFF000000.toInt()
+
+        fun stylePreview() {
+            preview.setTextColor(fgColor())
+            preview.setBackgroundColor(bgColor())
+            preview.textSize = PREVIEW_SIZES[sizeIdx]
+            preview.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            if (shadow) preview.setShadowLayer(6f, 2f, 2f, Color.BLACK)
         }
-        val edgeType = if (shadow) CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW else CaptionStyleCompat.EDGE_TYPE_NONE
-        val previewStyle = CaptionStyleCompat(
-            fgColor, bgColor, Color.TRANSPARENT, edgeType,
-            if (shadow) Color.BLACK else Color.TRANSPARENT,
-            if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        )
-        
-        preview.setTextColor(previewStyle.foregroundColor)
-        preview.setBackgroundColor(previewStyle.backgroundColor)
-        preview.textSize = 18f * SIZES[sizeIdx]
-        preview.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        stylePreview()
 
         val scroll = ScrollView(activity)
         val list = LinearLayout(activity)
@@ -162,14 +162,7 @@ class SubtitleEngine(
         fun refresh() {
             save()
             applyStyle()
-            preview.textSize = 18f * SIZES[sizeIdx]
-            preview.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-            preview.setTextColor(COLORS[colorIdx])
-            preview.setBackgroundColor(when (bgIdx) {
-                0 -> Color.TRANSPARENT
-                1 -> 0x66000000
-                else -> 0xFF000000.toInt()
-            })
+            stylePreview()
         }
 
         val rowPos = TextView(activity)
@@ -213,7 +206,7 @@ class SubtitleEngine(
             swatchBar.removeAllViews()
             for (i in COLORS.indices) {
                 val sw = TextView(activity)
-                sw.gravity = android.view.Gravity.CENTER
+                sw.gravity = Gravity.CENTER
                 sw.text = if (i == colorIdx) "\u2713" else ""
                 sw.setTextColor(if (i == 0 || i == 4 || i == 5) Color.BLACK else Color.WHITE)
                 sw.setBackgroundColor(COLORS[i])
@@ -233,7 +226,7 @@ class SubtitleEngine(
         val w = activity.resources.displayMetrics.widthPixels
         val h = activity.resources.displayMetrics.heightPixels
         val clp = FrameLayout.LayoutParams((w * 0.8f).toInt(), (h * 0.8f).toInt())
-        clp.gravity = android.view.Gravity.CENTER
+        clp.gravity = Gravity.CENTER
         ov.addView(card, clp)
         root.addView(ov, FrameLayout.LayoutParams(-1, -1))
         settingsOverlay = ov
